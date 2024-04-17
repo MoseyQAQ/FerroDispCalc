@@ -2,33 +2,48 @@ import numpy as np
 from pymatgen.core import Structure,Lattice
 from tqdm import tqdm
 
-class Polar:
+class PolarLMP:
     def __init__(self, file_name:str,
-                 type_map: list[str]=None,
-                 natoms: int=5000,
-                 nframes: int=2501,
-                 fmt: str='traj') -> None:
+                 type_map: list[str]=None) -> None:
         
-        if fmt not in ['SingleFrame','traj']:
-            raise NotImplementedError(f'Format {fmt} is not supported.')
-        if fmt == 'SingleFrame' and nframes != 1:
-            raise ValueError(f'Number of frames should be 1 for SingleFrame format.')
-        
-        print("========Info========")
-        print("File name: ", file_name)
-        print("Number of atoms: ", natoms)
-        print("Number of frames: ", nframes)
-        print("Type map: ", *type_map)
-        print("Format: ", fmt)
-        print("====================")
         self.file_name = file_name
-        self.natoms = natoms
-        self.nframes = nframes
         self.type_map = type_map
-        self.fmt = fmt
+        self.natoms = self._get_natoms()
+        self.nframes = self._get_nframes()
+        
+    
+    def summary(self) -> None:
+        print("=====================================")
+        print(f"File name: {self.file_name}")
+        print(f"Type map: {self.type_map}")
+        print(f"Number of atoms: {self.natoms}")
+        print(f"Number of frames: {self.nframes}")
+        print("=====================================")
 
-    def parse_first_frame(self, st: Structure, ele:list[str]=['Ti'],
-                          r:float=4.0, O_num:int=6,
+    def _get_natoms(self) -> int:
+        flag = False
+        with open(self.file_name, 'r') as f:
+            for line in f:
+                if 'ITEM: NUMBER OF ATOMS' in line:
+                    flag = True
+                    continue
+                if flag:
+                    natoms = int(line)
+                    break
+        return natoms
+
+    def _get_nframes(self) -> int:
+        with open(self.file_name, 'r') as f:
+            nframes = 0
+            while True:
+                line = f.readline()
+                if not line:
+                    break
+                if 'ITEM: TIMESTEP' in line:
+                    nframes += 1
+        return nframes
+    def parse_first_frame(self, st: Structure, ele:list[str]=['Ti'], nn_ele:list[str]=['O'],
+                          r:float=4.0, num:int=6,
                           vacancy: bool=False) -> tuple:
         ele_idx = []
         nn_idx = []
@@ -37,11 +52,11 @@ class Polar:
             if str(site.specie) not in  ele:
                 continue
             nn = st.get_neighbors(site,r)
-            nn_idx.append([n.index for n in nn if str(n.specie) == 'O'])
+            nn_idx.append([n.index for n in nn if str(n.specie) in nn_ele])
             ele_idx.append(idx)
             # check if the number of oxygen atoms is correct
-            if not vacancy and len(nn_idx[-1]) != O_num:
-                raise ValueError(f'Number of oxygen atoms is not {O_num}.')
+            if not vacancy and len(nn_idx[-1]) != num:
+                raise ValueError(f'Number of atoms is not {num}.')
         return ele_idx, nn_idx
     def _read_cell(self,f) -> np.ndarray:
         line = f.readline().split()
@@ -120,72 +135,60 @@ class Polar:
             origin[idx] = coords[ele]
 
         return origin,disp
-    def _get_one_frame_polar(self,prefix:str,
-                             ele:str='Ti',
-                             r:float=4.0,
-                             O_num:int=6,
-                             vacancy:bool=False) -> None:
-        st = Structure.from_file(self.file_name)
-        ele_idx, nn_idx = self.parse_first_frame(st,ele=ele,r=r,O_num=O_num,vacancy=vacancy)
-        disp = np.zeros((self.nframes,len(ele_idx),3))
-        origin = np.zeros((self.nframes,len(ele_idx),3))
-        origin_,disp_ = self._get_disp(coords=st.frac_coords.copy(),
-                                       cells=st.lattice.matrix.copy(),
-                                       ele_idx=ele_idx,
-                                       nn_idx=nn_idx,
-                                       vacancy=vacancy,
-                                       O_num=O_num)
-        origin[0] = origin_
-        disp[0] = disp_
-
-        np.save(f'{prefix}origin.npy',origin)
-        np.save(f'{prefix}disp.npy',disp)
-    def _get_traj_polar(self,prefix:str,
-                        ele:list[str]=['Ti'],
-                        r:float=4.0,
-                        O_num:int=6,
-                        vacancy:bool=False) -> None:
+    def _get_polar(self,
+                    ele:list[str]=['Ti'],
+                    nn_ele:list[str]=['O'],
+                    r:float=4.0,
+                    num:int=6,
+                    vacancy:bool=False) -> None:
         f = open(self.file_name, 'r')
         cell, type_index, coord = self._read_lmp_traj(f)
         st = Structure(Lattice(cell), type_index, coord,coords_are_cartesian=True)
-        ele_idx, nn_idx = self.parse_first_frame(st, ele, r, O_num, vacancy)
+        ele_idx, nn_idx = self.parse_first_frame(st, ele, nn_ele,r, num, vacancy)
         
         disp = np.zeros((self.nframes,len(ele_idx),3))
         origin = np.zeros((self.nframes,len(ele_idx),3))
+        cells = np.zeros((self.nframes,3,3))
+        coords = np.zeros((self.nframes,self.natoms,3))
 
         # read the rest of the frames
         for i in tqdm(range(self.nframes-1)):
             # deal with the last frame's data
-            origin_, disp_ = self._get_disp(coord,cell,ele_idx,nn_idx,vacancy,O_num)
+            origin_, disp_ = self._get_disp(coord,cell,ele_idx,nn_idx,vacancy,num)
+            cells[i] = cell
+            coords[i] = coord
             origin[i] = origin_
             disp[i] = disp_
 
             # read in new frame
             cell, type_index, coord = self._read_lmp_traj(f)
+  
         
         # deal with the last frame's data
-        origin_, disp_ = self._get_disp(coord,cell,ele_idx,nn_idx,vacancy,O_num)
+        origin_, disp_ = self._get_disp(coord,cell,ele_idx,nn_idx,vacancy,num)
         origin[-1] = origin_
         disp[-1] = disp_
+        cells[-1] = cell
+        coords[-1] = coord
 
         # close the file
         f.close()
 
-        # save file
-        np.save(f'{prefix}origin.npy',origin)
-        np.save(f'{prefix}disp.npy',disp)
+        return origin,disp,cells,coords
 
     def get_polar(self,
                   prefix: str,
                   ele:list[str]=['Ti'],
+                  nn_ele:list[str]=['O'],
                   r:float=4.0,
-                  O_num:int=6,
-                  vacancy: bool=False) -> None:
+                  num:int=6,
+                  vacancy: bool=False,
+                  save: bool=True) -> None:
         
-        if self.fmt == 'SingleFrame':
-            self._get_one_frame_polar(prefix,ele=ele,r=r,O_num=O_num,vacancy=vacancy)
-            return None 
-        elif self.fmt == 'traj':
-            self._get_traj_polar(prefix,ele=ele,r=r,O_num=O_num,vacancy=vacancy)
-            return None
+        origin, disp, cells, coords = self._get_polar(ele=ele,nn_ele=nn_ele,r=r,num=num,vacancy=vacancy)
         
+        if save:
+            np.save(f'{prefix}_origin.npy', origin)
+            np.save(f'{prefix}_disp.npy', disp)
+            np.save(f'{prefix}_cells.npy', cells)
+            np.save(f'{prefix}_coords.npy', coords)
