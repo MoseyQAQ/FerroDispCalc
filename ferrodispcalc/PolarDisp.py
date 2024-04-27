@@ -47,17 +47,39 @@ class PolarLMP:
                           vacancy: bool=False) -> tuple:
         ele_idx = []
         nn_idx = []
-        for idx, site in enumerate(st):
-            # only consider the specific element
-            if str(site.specie) not in  ele:
-                continue
-            nn = st.get_neighbors(site,r)
-            nn_idx.append([n.index for n in nn if str(n.specie) in nn_ele])
-            ele_idx.append(idx)
-            # check if the number of oxygen atoms is correct
-            if not vacancy and len(nn_idx[-1]) != num:
-                raise ValueError(f'Number of atoms is not {num}.')
+
+        ele_set = set(ele)
+        nn_ele_set = set(nn_ele)
+
+        # get element index
+        for idx in range(len(st)):
+            if str(st[idx].specie) in ele_set:
+                ele_idx.append(idx)
+
+        # build neighbor list
+        center_idx, point_idx, offset_vectors, distances = st.get_neighbor_list(r)
+
+        # select the neighbors of the element
+        center_mask = np.isin(center_idx, ele_idx)
+        species_mask = np.array([str(st[idx].specie) in nn_ele_set for idx in point_idx])
+        combined_mask = center_mask & species_mask
+        selected_center_idx = center_idx[combined_mask]
+        selected_point_idx = point_idx[combined_mask]
+
+        # build the neighbor list
+        temp_result = {ele : [] for ele in ele_idx}
+        for center, point in tqdm(zip(selected_center_idx, selected_point_idx)):
+            temp_result[center].append(point)
+
+        # check if the number of neighbors is correct
+        for idx in ele_idx:
+            if len(temp_result[idx]) != num and not vacancy:
+                raise ValueError(f"Number of neighbors for {st[idx].specie, idx} is not correct")                
+            else:
+                nn_idx.append(temp_result[idx])
+        
         return ele_idx, nn_idx
+    
     def _read_cell(self,f) -> np.ndarray:
         line = f.readline().split()
         line = [ float(x) for x in line ]
