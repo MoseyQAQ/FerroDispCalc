@@ -4,12 +4,21 @@ from tqdm import tqdm
 
 class PolarLMP:
     def __init__(self, file_name:str,
-                 type_map: list[str]=None) -> None:
+                 type_map: list[str]=None,
+                 natoms: int=None,
+                 nframes: int=None) -> None:
         
         self.file_name = file_name
         self.type_map = type_map
-        self.natoms = self._get_natoms()
-        self.nframes = self._get_nframes()
+
+        if natoms is None:
+            self.natoms = self._get_natoms()
+        else:
+            self.natoms = natoms
+        if nframes is None:
+            self.nframes = self._get_nframes()
+        else:
+            self.nframes = nframes
         
     
     def summary(self) -> None:
@@ -140,6 +149,7 @@ class PolarLMP:
             # if vacancy, add a zero vector
             if len(nn) != O_num and vacancy:
                 disp[idx] = np.array([0.0,0.0,0.0])
+                origin[idx] = coords[ele]
                 continue
 
             # calculate the center of the nn
