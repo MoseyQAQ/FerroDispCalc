@@ -173,11 +173,31 @@ class PolarLMP:
                     r:float=4.0,
                     num:int=6,
                     vacancy:bool=False) -> None:
+        '''
+        calculate the polar displacement
+
+        Args:
+            ele: center element to calculate the polar displacement
+            nn_ele: neighbor element
+            r: cutoff radius
+            num: number of neighbors
+            vacancy: whether to consider vacancy
+        
+        Returns:
+            origin: origin coordinates
+            disp: polar displacement
+            cells: cell vectors
+            coords: coordinates
+
+        '''
+
+        # read the first frame
         f = open(self.file_name, 'r')
         cell, type_index, coord = self._read_lmp_traj(f)
         st = Structure(Lattice(cell), type_index, coord,coords_are_cartesian=True)
         ele_idx, nn_idx = self.parse_first_frame(st, ele, nn_ele,r, num, vacancy)
         
+        # initialize the arrays
         disp = np.zeros((self.nframes,len(ele_idx),3))
         origin = np.zeros((self.nframes,len(ele_idx),3))
         cells = np.zeros((self.nframes,3,3))
@@ -185,6 +205,7 @@ class PolarLMP:
 
         # read the rest of the frames
         for i in tqdm(range(self.nframes-1)):
+
             # deal with the last frame's data
             origin_, disp_ = self._get_disp(coord,cell,ele_idx,nn_idx,vacancy,num)
             cells[i] = cell
@@ -208,7 +229,7 @@ class PolarLMP:
 
         return origin,disp,cells,coords
 
-    def get_polar(self,
+    def get_polar_displacement(self,
                   prefix: str,
                   ele:list[str]=['Ti'],
                   nn_ele:list[str]=['O'],
@@ -216,11 +237,68 @@ class PolarLMP:
                   num:int=6,
                   vacancy: bool=False,
                   save: bool=True) -> None:
-        
+        '''
+        calculate the polar displacement, it will call the _get_polar function
+
+        Args:
+            prefix: prefix of the output file
+            ele: center element to calculate the polar displacement
+            nn_ele: neighbor element
+            r: cutoff radius
+            num: number of neighbors
+            vacancy: whether to consider vacancy
+            save: whether to save the output
+        '''
         origin, disp, cells, coords = self._get_polar(ele=ele,nn_ele=nn_ele,r=r,num=num,vacancy=vacancy)
         
         if save:
             np.save(f'{prefix}_origin.npy', origin)
             np.save(f'{prefix}_disp.npy', disp)
-            np.save(f'{prefix}_cells.npy', cells)
-            np.save(f'{prefix}_coords.npy', coords)
+    
+    def get_avgeraged_structure(self,timeStep: int=500, output: str='out.xsf') -> None:
+        '''
+        calculate the averaged structure
+
+        Args:
+            timeStep: time step to average
+            output: output file name
+        '''
+        f = open(self.file_name, 'r')
+        cell, type_index, coord = self._read_lmp_traj(f)
+        cells = np.zeros((self.nframes,3,3))
+        coords = np.zeros((self.nframes,self.natoms,3))
+
+        for i in tqdm(range(self.nframes-1)):
+            cells[i] = cell
+            coords[i] = coord
+            cell, type_index, coord = self._read_lmp_traj(f)
+        
+        cells[-1] = cell
+        coords[-1] = coord
+
+        cells = np.mean(cells[timeStep:],axis=0)
+        coords = np.mean(coords[timeStep:],axis=0)
+        f.close()
+
+        # write to the xsf file 
+        self.write_xsf(coords,cells,type_index,output)
+
+    def write_xsf(self, coord: np.ndarray, cell: np.ndarray, element: list[str], filename: str) -> None:
+        '''
+        write the xsf file
+
+        Args:
+            coord: coordinates
+            cell: cell vectors
+            element: element list
+            filename: output file name
+        '''
+        with open(filename, 'w') as f:
+            f.write(f'CRYSTAL\n')
+            f.write(f'PRIMVEC\n')
+            for i in range(3):
+                f.write(f'{cell[i,0]:.6f} {cell[i,1]:.6f} {cell[i,2]:.6f}\n')
+            f.write(f'PRIMCOORD\n')
+            f.write(f'{len(coord)} 1\n')
+            for i in range(len(coord)):
+                f.write(f'{element[i]} {coord[i,0]:.6f} {coord[i,1]:.6f} {coord[i,2]:.6f}\n')
