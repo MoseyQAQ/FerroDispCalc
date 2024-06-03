@@ -51,6 +51,7 @@ class PolarLMP:
                 if 'ITEM: TIMESTEP' in line:
                     nframes += 1
         return nframes
+    
     def parse_first_frame(self, st: Structure, ele:list[str]=['Ti'], nn_ele:list[str]=['O'],
                           r:float=4.0, num:int=6,
                           vacancy: bool=False) -> tuple:
@@ -139,8 +140,24 @@ class PolarLMP:
         self._skip_blank_line(f,1)
         type_index, coord = self._read_atoms(f)
         return cell, type_index, coord
-    def _get_disp(self,coords: np.ndarray,cells: np.ndarray,ele_idx: list[int], nn_idx: list[list[int]],
+    
+    def _get_polar_disp(self,coords: np.ndarray,cells: np.ndarray,ele_idx: list[int], nn_idx: list[list[int]],
                   vacancy: bool=False, O_num: int=6) -> tuple:
+        '''
+        For a given frame, calculate the polar displacement
+
+        Args:
+            coords: coordinates
+            cells: cell vectors
+            ele_idx: element index of center element
+            nn_idx: neighbor index
+            vacancy: whether to consider vacancy
+            O_num: number of oxygen neighbors
+        
+        Returns:
+            origin: origin coordinates
+            disp: polar displacements
+        '''
         disp = np.zeros((len(ele_idx),3))
         origin = np.zeros((len(ele_idx),3))
 
@@ -167,14 +184,15 @@ class PolarLMP:
             origin[idx] = coords[ele]
 
         return origin,disp
-    def _get_polar(self,
+    
+    def _get_polar_displacement(self,
                     ele:list[str]=['Ti'],
                     nn_ele:list[str]=['O'],
                     r:float=4.0,
                     num:int=6,
                     vacancy:bool=False) -> None:
         '''
-        calculate the polar displacement
+        calculate the polar displacement of all frames. It will call the _get_polar_disp function to calculate the single frame
 
         Args:
             ele: center element to calculate the polar displacement
@@ -207,7 +225,7 @@ class PolarLMP:
         for i in tqdm(range(self.nframes-1)):
 
             # deal with the last frame's data
-            origin_, disp_ = self._get_disp(coord,cell,ele_idx,nn_idx,vacancy,num)
+            origin_, disp_ = self._get_polar_disp(coord,cell,ele_idx,nn_idx,vacancy,num)
             cells[i] = cell
             coords[i] = coord
             origin[i] = origin_
@@ -218,7 +236,7 @@ class PolarLMP:
   
         
         # deal with the last frame's data
-        origin_, disp_ = self._get_disp(coord,cell,ele_idx,nn_idx,vacancy,num)
+        origin_, disp_ = self._get_polar_disp(coord,cell,ele_idx,nn_idx,vacancy,num)
         origin[-1] = origin_
         disp[-1] = disp_
         cells[-1] = cell
@@ -249,18 +267,19 @@ class PolarLMP:
             vacancy: whether to consider vacancy
             save: whether to save the output
         '''
-        origin, disp, cells, coords = self._get_polar(ele=ele,nn_ele=nn_ele,r=r,num=num,vacancy=vacancy)
+        origin, disp, cells, coords = self._get_polar_displacement(ele=ele,nn_ele=nn_ele,r=r,num=num,vacancy=vacancy)
         
         if save:
             np.save(f'{prefix}_origin.npy', origin)
             np.save(f'{prefix}_disp.npy', disp)
     
-    def get_avgeraged_structure(self,timeStep: int=500, output: str='out.xsf') -> None:
+    def get_avgeraged_structure(self,start_idx: int, end_idx: int, output: str='out.xsf') -> None:
         '''
-        calculate the averaged structure
+        calculate the averaged structure between start_idx and end_idx frame
 
         Args:
-            timeStep: time step to average
+            start_idx: start index of the frames
+            end_idx: end index of the frames
             output: output file name
         '''
         f = open(self.file_name, 'r')
@@ -276,14 +295,14 @@ class PolarLMP:
         cells[-1] = cell
         coords[-1] = coord
 
-        cells = np.mean(cells[timeStep:],axis=0)
-        coords = np.mean(coords[timeStep:],axis=0)
+        cells = np.mean(cells[start_idx:end_idx],axis=0)
+        coords = np.mean(coords[start_idx:end_idx],axis=0)
         f.close()
 
         # write to the xsf file 
         self.write_xsf(coords,cells,type_index,output)
 
-    def write_xsf(self, coord: np.ndarray, cell: np.ndarray, element: list[str], filename: str) -> None:
+    def write_xsf(self, coord: np.ndarray, cell: np.ndarray, element: list[str], filename: str, vector: np.ndarray=None) -> None:
         '''
         write the xsf file
 
@@ -292,6 +311,7 @@ class PolarLMP:
             cell: cell vectors
             element: element list
             filename: output file name
+            vector: attach a vector to each atom
         '''
         with open(filename, 'w') as f:
             f.write(f'CRYSTAL\n')
@@ -300,5 +320,113 @@ class PolarLMP:
                 f.write(f'{cell[i,0]:.6f} {cell[i,1]:.6f} {cell[i,2]:.6f}\n')
             f.write(f'PRIMCOORD\n')
             f.write(f'{len(coord)} 1\n')
-            for i in range(len(coord)):
-                f.write(f'{element[i]} {coord[i,0]:.6f} {coord[i,1]:.6f} {coord[i,2]:.6f}\n')
+            if vector is not None:
+                for i in range(len(coord)):
+                    f.write(f'{element[i]} {coord[i,0]:.6f} {coord[i,1]:.6f} {coord[i,2]:.6f} {vector[i,0]:.6f} {vector[i,1]:.6f} {vector[i,2]:.6f}\n')
+            else:
+                for i in range(len(coord)):
+                    f.write(f'{element[i]} {coord[i,0]:.6f} {coord[i,1]:.6f} {coord[i,2]:.6f}\n')
+    
+    def _get_polarization_cell_per_frame(self, born_effective_charge: dict, coord: np.ndarray, cell: np.ndarray, type_index: list[str],
+                                    eleB_idx: list[int], nnA_idx: list[int], nnX_idx: list[int]) -> np.ndarray:
+        
+        # calculate the volume
+        volume = np.cross(cell[0, :], cell[1, :]) * cell[2, :]
+        cell_num = len(eleB_idx)
+        conversion_factor = 1.602176E-19 * 1.0E-10 * 1.0E30
+
+        polarization = np.zeros((len(eleB_idx),3))
+        # walk through the B site
+        for idx, (nnA, nnX, eleB) in enumerate(zip(nnA_idx, nnX_idx, eleB_idx)):
+            # initial the polarization
+            polarization_A = np.zeros(3)
+            polarization_B = np.zeros(3)
+            polarization_X = np.zeros(3)
+
+            # for each neighbor, apply pbc first, then calculate the polarization
+            for x in nnX:
+                for i in range(3):
+                    if coord[x][i] - coord[eleB][i] > 5:
+                        coord[x][i] -= cell[i][i]
+                    elif coord[x][i] - coord[eleB][i] < -5:
+                        coord[x][i] += cell[i][i]
+                polarization_X += born_effective_charge[type_index[x]] * coord[x]
+            
+            for a in nnA:
+                for i in range(3):
+                    if coord[a][i] - coord[eleB][i] > 5:
+                        coord[a][i] -= cell[i][i]
+                    elif coord[a][i] - coord[eleB][i] < -5:
+                        coord[a][i] += cell[i][i]
+                polarization_A += born_effective_charge[type_index[a]] * coord[a]
+            
+            polarization_B = born_effective_charge[type_index[eleB]] * coord[eleB]
+
+            polarization[idx] = polarization_B + polarization_X*0.5 + polarization_A/8
+        
+        # convert the unit to C/m^2
+        polarization = polarization * cell_num * conversion_factor / volume[2]
+        return polarization
+
+    def _get_polar_cell(self, born_effective_charge: dict, 
+                        eleA: list[str], eleB: list[str], eleX: list[str]=['O'], 
+                        cnA: int=8, cnX: int=6, rcut: float=4.0, 
+                        vacancy: bool=False, save: bool=True) -> np.ndarray:
+        '''
+        calculate the polarization of each perovskite cell of all frames.
+
+        Args:
+            born_effective_charge: born effective charge of each element
+            eleA: A site element
+            eleB: B site element
+            eleX: X site element
+            cnA: coordination number of A site
+            cnX: coordination number of X site
+            rcut: cutoff radius
+        '''
+        # read the first frame
+        f = open(self.file_name, 'r')
+        cell, type_index, coord = self._read_lmp_traj(f)
+        st = Structure(Lattice(cell), type_index, coord,coords_are_cartesian=True)
+        eleB_idx, nnA_idx = self.parse_first_frame(st, eleB, eleA, rcut, cnA, vacancy)
+        eleB_idx, nnX_idx = self.parse_first_frame(st, eleB, eleX, rcut, cnX, vacancy)
+
+        # initialize the arrays
+        polarization = np.zeros((self.nframes,len(eleB_idx),3))
+
+        # walk through the frames
+        for i in tqdm(range(self.nframes - 1)):
+            # calculate the polarization
+            polarization[i] = self._get_polarization_cell_per_frame(born_effective_charge, coord, cell, type_index, eleB_idx, nnA_idx, nnX_idx)
+
+            # read in new frame
+            cell, type_index, coord = self._read_lmp_traj(f)
+        
+        # deal with the last frame
+        polarization[-1] = self._get_polarization_cell_per_frame(born_effective_charge, coord, cell, type_index, eleB_idx, nnA_idx, nnX_idx)
+        f.close()
+
+        return polarization
+
+    def get_polar_cell(self,
+                       born_effective_charge: dict, prefix: str,
+                       eleA: list[str], eleB: list[str], eleX: list[str]=['O'],
+                       cnA: int=8, cnX: int=6, rcut: float=4.0,
+                       vacancy: bool=False, save: bool=True) -> None:
+        '''
+        calculate the polarization of each perovskite cell. It will call the _get_polar_cell function
+
+        Args:
+            born_effective_charge: born effective charge of each element
+            prefix: prefix of the output file
+            eleA: A site element
+            eleB: B site element
+            eleX: X site element
+            cnA: coordination number of A site
+            cnX: coordination number of X site
+            rcut: cutoff radius
+        '''
+        polarization = self._get_polar_cell(born_effective_charge, eleA, eleB, eleX, cnA, cnX, rcut, vacancy, save)
+
+        if save:
+            np.save(f'{prefix}_polarization_cell.npy', polarization)
