@@ -84,7 +84,7 @@ class PolarLMP:
         # check if the number of neighbors is correct
         for idx in ele_idx:
             if len(temp_result[idx]) != num and not vacancy:
-                raise ValueError(f"Number of neighbors for {st[idx].specie, idx} is not correct")                
+                raise ValueError(f"Number of neighbors for {st[idx].specie, idx} is not correct, {len(temp_result[idx])}")                
             else:
                 nn_idx.append(temp_result[idx])
         
@@ -370,7 +370,7 @@ class PolarLMP:
 
     def _get_polar_cell(self, born_effective_charge: dict, 
                         eleA: list[str], eleB: list[str], eleX: list[str]=['O'], 
-                        cnA: int=8, cnX: int=6, rcut: float=4.0, 
+                        cnA: int=8, cnX: int=6, rcutA: float=4.0, rcutX: float=4.0,
                         vacancy: bool=False, save: bool=True) -> np.ndarray:
         '''
         calculate the polarization of each perovskite cell of all frames.
@@ -388,8 +388,8 @@ class PolarLMP:
         f = open(self.file_name, 'r')
         cell, type_index, coord = self._read_lmp_traj(f)
         st = Structure(Lattice(cell), type_index, coord,coords_are_cartesian=True)
-        eleB_idx, nnA_idx = self.parse_first_frame(st, eleB, eleA, rcut, cnA, vacancy)
-        eleB_idx, nnX_idx = self.parse_first_frame(st, eleB, eleX, rcut, cnX, vacancy)
+        eleB_idx, nnA_idx = self.parse_first_frame(st, eleB, eleA, rcutA, cnA, vacancy)
+        eleB_idx, nnX_idx = self.parse_first_frame(st, eleB, eleX, rcutX, cnX, vacancy)
 
         # initialize the arrays
         polarization = np.zeros((self.nframes,len(eleB_idx),3))
@@ -411,7 +411,7 @@ class PolarLMP:
     def get_polar_cell(self,
                        born_effective_charge: dict, prefix: str,
                        eleA: list[str], eleB: list[str], eleX: list[str]=['O'],
-                       cnA: int=8, cnX: int=6, rcut: float=4.0,
+                       cnA: int=8, cnX: int=6, rcutA: float=4.0, rcutX: float=4.0,
                        vacancy: bool=False, save: bool=True) -> None:
         '''
         calculate the polarization of each perovskite cell. It will call the _get_polar_cell function
@@ -426,7 +426,7 @@ class PolarLMP:
             cnX: coordination number of X site
             rcut: cutoff radius
         '''
-        polarization = self._get_polar_cell(born_effective_charge, eleA, eleB, eleX, cnA, cnX, rcut, vacancy, save)
+        polarization = self._get_polar_cell(born_effective_charge, eleA, eleB, eleX, cnA, cnX, rcutA, rcutX, vacancy, save)
 
         if save:
             np.save(f'{prefix}_polarization_cell.npy', polarization)

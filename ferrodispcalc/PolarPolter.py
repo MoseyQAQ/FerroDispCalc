@@ -118,3 +118,69 @@ class DispPloter:
         #        os.makedirs(dir, exist_ok=True)
         #    ani.save(f'{dir}/{prefix}-{plane}-Layer{layer_index}.gif', writer='pillow', fps=10)
         #plt.close()
+    def plot_layer_polarization(self, time: int=None, average: bool=True, start_idx: int=None, layer_tolerance: float=1.0):
+        
+        # get the original point
+        origin = self.origin[0].copy()
+        
+        # get desired displacement
+        if average:
+            disp = np.mean(self.disp[start_idx:].copy(), axis=0)
+        else:
+            disp = self.disp[time].copy()
+        
+        # according to the origin's coord, find the layer
+        x_layer_dict = {}  # key: x , value: list of atoms
+        x_layer_key = []
+        y_layer_dict = {}
+        y_layer_key = []
+        z_layer_dict = {}
+        z_layer_key = []
+
+        for idx, (pos, d) in enumerate(zip(origin, disp)):
+            x, y, z = pos
+
+            # yz
+            found_layer= False
+            for key in x_layer_dict:
+                if abs(x-key) < layer_tolerance:
+                    x_layer_dict[key].append((y,z,d[1], d[2]))
+                    found_layer = True
+                    break 
+            
+            if not found_layer:
+                x_layer_key.append(x)
+                x_layer_dict[x] = [(y,z,d[1], d[2])]
+            
+            # xz
+            found_layer= False
+            for key in y_layer_dict:
+                if abs(y-key) < layer_tolerance:
+                    y_layer_dict[key].append((x,z,d[0], d[2]))
+                    found_layer = True
+                    break 
+            
+            if not found_layer:
+                y_layer_key.append(y)
+                y_layer_dict[y] = [(x,z,d[0], d[2])]
+            
+            # xy
+            found_layer= False
+            for key in z_layer_dict:
+                if abs(z-key) < layer_tolerance:
+                    z_layer_dict[key].append((x,y,d[0], d[1]))
+                    found_layer = True
+                    break 
+            
+            if not found_layer:
+                z_layer_key.append(z)
+                z_layer_dict[z] = [(x,y,d[0], d[1])]
+        print(z_layer_key)
+        # plot xy 
+        for i, key in enumerate(sorted(z_layer_key)):
+            x,y,dx,dy = zip(*z_layer_dict[key])
+            plt.quiver(x,y,dx,dy)
+            plt.savefig(f'{key}.png')
+            plt.close()
+
+            
