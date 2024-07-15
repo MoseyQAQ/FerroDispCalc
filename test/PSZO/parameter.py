@@ -4,7 +4,7 @@ from Main import AVG_disp_polar, Output
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 """初始输入模块"""
-input_path = "1.lammpstrj"
+input_path = "traj.lammpstrj"
 Number_atoms = 7200
 Number_cell = [2,2,360]
 timestep_selected = 1
@@ -17,7 +17,7 @@ charge_X = -3.045
 output_path_AVGcell_coord = "./avg_cell_coord"
 output_path_AVGdisp = "./avg_disp"
 output_path_id = "./id"
-#output_path_AVGpolar_per_cell = "./polar_per_cell"
+output_path_AVGpolar_per_cell = "./polar_per_cell"
 #output_path_AVGpolar_AandB = "./polar_AandB"
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -28,14 +28,14 @@ function = AVG_disp_polar(input_path=input_path, Number_atoms=Number_atoms, Numb
                           charge_A=charge_A, charge_B=charge_B, charge_X=charge_X, switch=switch)
 cell_avg, coord_avg = function.ALLcoord_avg()
 disp_fin, corrd_number_fin, record_avg_fin, id_AX, id_BX, error = function.get_atomsdisplacment(cell_avg, coord_avg)
-#Polar_cell = function.get_totPolar_cell(cell_avg, coord_avg)
+Polar_cell = function.get_totPolar_cell(cell_avg, coord_avg)
 #PolarA, PolarB, avg_PolarA, avg_PolarB, avg_AllPolar = function.Polar_eachAtoms(cell_avg, disp_fin)
 """文件输出模块"""
 output = Output(Number_atoms=Number_atoms, Number_cell=Number_cell)
 #output.output_avg_cell_coord(output_path_AVGcell_coord, cell_avg, coord_avg)
 output.output_disp(output_path_AVGdisp, disp_fin, corrd_number_fin, record_avg_fin, error)
-output.output_id(output_path_id, id_AX, id_BX)
-#output.output_polar_cell(output_path_AVGpolar_per_cell, Polar_cell)
+#output.output_id(output_path_id, id_AX, id_BX)
+output.output_polar_cell(output_path_AVGpolar_per_cell, Polar_cell)
 #output.output_Polar_eachAtoms(output_path_AVGpolar_AandB, PolarA, PolarB, avg_PolarA, avg_PolarB, avg_AllPolar)
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""

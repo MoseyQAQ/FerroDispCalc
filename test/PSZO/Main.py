@@ -202,6 +202,7 @@ class __Core__:
                     while record_conumber[num] < limit_cord:
                         criteria_ = criteria_+0.15
                         id, record_conumber[num], inside_wash, inside = self.__core_inside(criteria_, final_coord, initial_coord, index, num, cell)
+                        fin_bond = np.sum(charge[num] * inside_wash, axis=0) / record_conumber[num]
                 if record_conumber[num] > limit_cord:
                     insideX = list(np.column_stack((np.sum(inside * inside, axis=1), id, inside_wash)))
                     insideX.sort(key=takeZero)
