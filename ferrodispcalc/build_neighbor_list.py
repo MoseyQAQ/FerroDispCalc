@@ -1,3 +1,24 @@
+'''
+build_neighbor_list.py:
+    This module is used to build the neighbor list for the ABO3 perovskite structure.
+    The input structure file can be in the format of lammps dump file or other formats.
+
+Example:
+    from build_neighbor_list import NeighborListABO3
+    nl = NeighborListABO3('structure.lmp', 'lmp-dump', type_map=['Pb', 'Sr', 'Ti', 'O'])
+    center_elements = ['Pb', 'Sr']
+    neighbor_elements = ['O']
+    nl.build(center_elements, neighbor_elements, cutoff=4.0, neighbor_num=6)
+    nl.write('neighbor_list.txt')
+
+
+ Author: Denan Li
+Last modified: 2024-07-15
+Email: lidenan@westlake.edu.cn   
+
+Todo list:
+    1. support HfO2 structure
+'''
 import numpy as np
 from pymatgen.core import Structure, Lattice
 
