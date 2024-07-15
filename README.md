@@ -1,25 +1,31 @@
 # FerroDispCalc
 
-Calculator of polarization displacements and polarization of ferroelectrics in molecular dynamics simulations. \
-For better performence, the code is written in C++.
+Calculator of polarization displacements and polarization of ferroelectrics in molecular dynamics simulations. 
+
+This code is designed for: 
+* build neighbor list for ferrorelectrics (ABO3 perovskite)
+* calculate the polarization and displacement from a LAMMPS dump file. 
+
+For better performence, the main part of code is written in C++.
 
 ## Code Structure
 
 ```
 .
-├── example   // example of how to use code, in todo list
-├── ferrodispcalc  // main folder
-│   ├── basic.hpp   // This file contains basic functions to read lammps dump files.
-│   ├── build_neighbor_list.py  // Build neighbor list for ABO3 perovskite
-│   ├── get_averaged_structure.cpp  // Calculate the average structure from LAMMPS dump file
-│   ├── get_polarization.cpp  // Calculate the polarization of each perovskite unit call using LAMMPS dump file
-│   ├── get_polarization_displacement.cpp  // Calculate the polarization displacement from LAMMPS dump file
+├── example  //example of how to use code, in todo list
+├── ferrodispcalc // python library
+│   ├── build_neighbor_list.py  //Build neighbor list for ABO3 perovskite
 │   ├── PolarPolter.py
-│   └── type_map.py  // store the common type map
-├── install.sh  // installation script
+│   └── type_map.py  //store the common type map
+├── install.sh //installation script
 ├── LICENSE
 ├── README.md
-└── test  // files related to testing
+├── src  //c++ source code
+│   ├── basic.hpp //This file contains basic functions to read lammps dump files.
+│   ├── get_averaged_structure.cpp //Calculate the average structure from LAMMPS dump file
+│   ├── get_polarization.cpp //Calculate the polarization of each perovskite unit call using LAMMPS dump file
+│   └── get_polarization_displacement.cpp //Calculate the polarization displacement from LAMMPS dump file
+└── test //files related to testing
     ├── BTO
     │   ├── 1.lammpstrj
     │   ├── Main.py
@@ -33,6 +39,7 @@ For better performence, the code is written in C++.
     └── PSZO
         ├── 1.lammpstrj
         ├── Main.py
+        ├── neighbor.py
         └── parameter.py
 ```
 
@@ -66,4 +73,5 @@ chmod +x install.sh
 0. testing case
 1. interface with Python3
 2. more easy to use
+    * in get_a: support output of POSCAR format. support flexible slice of frames
 3. doc with spinx
