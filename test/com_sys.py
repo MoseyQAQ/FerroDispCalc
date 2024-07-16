@@ -42,9 +42,9 @@ def compare_stru(ref_file: str, test_file: str) -> None:
     test_cell, test_coord, test_type_index = parse_xsf_file(test_file)
 
     if np.allclose(ref_cell, test_cell) and np.allclose(ref_coord, test_coord) and np.all(ref_type_index == test_type_index):
-        print(f"{Path(ref_file).absolute().parent}: Pass")
+        print(f"{Path(test_file).absolute()}: Pass")
     else:
-        print(f"{Path(ref_file).absolute().parent}: Fail")
+        print(f"{Path(test_file).absolute()}: Fail")
 
 def compare_disp(ref_file: str, test_file: str) -> None:
     '''
@@ -58,9 +58,9 @@ def compare_disp(ref_file: str, test_file: str) -> None:
     test_disp = np.loadtxt(test_file, usecols=(3, 4, 5))
 
     if np.allclose(ref_disp, test_disp):
-        print(f"{Path(ref_file).absolute().parent}: Pass, Max Error: {np.max(np.linalg.norm(ref_disp - test_disp, axis=1))}")
+        print(f"{Path(test_file).absolute()}: Pass, Max Error: {np.max(np.linalg.norm(ref_disp - test_disp, axis=1))}")
     else:
-        print(f"{Path(ref_file).absolute().parent}: Fail, Max Error: {np.max(np.linalg.norm(ref_disp - test_disp, axis=1))}")
+        print(f"{Path(test_file).absolute()}: Fail, Max Error: {np.max(np.linalg.norm(ref_disp - test_disp, axis=1))}")
     
 def compare_polar(ref_file: str, test_file: str) -> None:
     '''
@@ -74,6 +74,6 @@ def compare_polar(ref_file: str, test_file: str) -> None:
     test_polar = np.loadtxt(test_file)
 
     if np.allclose(ref_polar, test_polar):
-        print(f"{Path(ref_file).absolute().parent}: Pass, Max Error: {np.max(np.linalg.norm(ref_polar - test_polar, axis=1))}")
+        print(f"{Path(test_file).absolute()}: Pass, Max Error: {np.max(np.linalg.norm(ref_polar - test_polar, axis=1))}")
     else:
-        print(f"{Path(ref_file).absolute().parent}: Fail, Max Error: {np.max(np.linalg.norm(ref_polar - test_polar, axis=1))}")
+        print(f"{Path(test_file).absolute()}: Fail, Max Error: {np.max(np.linalg.norm(ref_polar - test_polar, axis=1))}")

@@ -7,17 +7,16 @@ Compile:
     g++ get_averaged_structure.cpp -O3 -o get_averaged_structure -I /path/to/eigen
 
 Usage:
-    ./get_averaged_structure input_file output_file type_map_file start_frame end_frame step
+    ./get_averaged_structure input_file output_file type_map_file ratio/last_frame
     OPTIONS:
         input_file: LAMMPS dump file
         output_file: output file in .xsf format
         type_map_file: a file containing the atom types 
-        start_frame: the first frame to be read, starting from 0
-        end_frame: the last frame to be read
-        step: read every step frames
+        ratio/last_frame: If the number < 1, it is the ratio of frames to be read. i.e. 0.5 means last 50% of frames will be read to calculate the average structure.
+                          If the number >= 1, it is the last frame to be read. i.e. 2500 means the last 2500 frames will be read to calculate the average structure.
         
 Author: Denan Li
-Last modified: 2024-07-10
+Last modified: 2024-07-16
 Email: lidenan@westlake.edu.cn
 */
 
@@ -41,9 +40,7 @@ int main(int argc, char** argv) {
     std::string input_file = argv[1];
     std::string output_file = argv[2];
     std::string type_map_file = argv[3];
-    int start_frame = std::stoi(argv[4]);
-    int end_frame = std::stoi(argv[5]);
-    int step = std::stoi(argv[6]);
+    double ratio = std::stod(argv[4]);
 
     // check whether the output file exists, if so, exit
     std::ifstream check_file(output_file);
@@ -58,6 +55,19 @@ int main(int argc, char** argv) {
     std::vector<int> atom_types = read_atom_types(input_file, natoms);
     std::vector<std::streampos> frame_pos = get_frame_positions(input_file);
     std::vector<std::string> type_map = get_type_map(type_map_file);
+
+    // calculate the frame index to read in
+    int end_frame = frame_pos.size();
+    int step = 1;
+    int start_frame;
+    if (ratio > 1) {
+        int start_frame = end_frame - ratio;
+    } else if (ratio <= 1 && ratio > 0) {
+        int start_frame = frame_pos.size() * (1 - ratio);
+    } else {
+        std::cerr << "Invalid ratio: " << ratio << std::endl;
+        exit(1);
+    }
 
     // print information
     std::cout << "Number of atoms: " << natoms << std::endl;

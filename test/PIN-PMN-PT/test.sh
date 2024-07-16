@@ -1,28 +1,30 @@
 #!/bin/bash
 
-##################### Test for get_d #####################
-# build_neighbor
+# build the neighbor list
 python3 -B build_neighbor.py
 
-# test get_d
-$1/get_d traj.lammpstrj B.dat test_B.disp  0 1 1 > /dev/null
-$1/get_d traj.lammpstrj A.dat test_A.disp  0 1 1 > /dev/null
-cat test_A.disp test_B.disp > test.disp
+# convert the dump file into xsf
+$1/get_a traj.lammpstrj test.xsf type_map_file 1 > /dev/null
 
-# compare the output with the reference
+# test get_d (dump)
+$1/get_d traj.lammpstrj test_B.disp B.dat 1 > /dev/null
+$1/get_d traj.lammpstrj test_A.disp A.dat 1 > /dev/null
+cat test_A.disp test_B.disp > test.disp
 python3 -B ../compare.py ref.disp test.disp disp
 
-# clean up
-rm -f test.disp test_A.disp test_B.disp A.dat 
-##################### End Test get_d #####################
+# test get_d (xsf)
+$1/get_d test.xsf test_B_xsf.disp B.dat > /dev/null
+$1/get_d test.xsf test_A_xsf.disp A.dat > /dev/null
+cat test_A_xsf.disp test_B_xsf.disp > test_xsf.disp
+python3 -B ../compare.py ref.disp test_xsf.disp disp
 
-##################### Test for get_p #####################
-# test get_p
-$1/get_p traj.lammpstrj BA.dat B.dat test.polar 0 1 1 > /dev/null
-
-# compare the output with the reference
+# test get_p (dump)
+$1/get_p traj.lammpstrj test.polar BA.dat B.dat type_map_file bec_file 1 > /dev/null
 python3 -B ../compare.py ref.polar test.polar polar
 
+# test get_p (xsf)
+$1/get_p test.xsf test_xsf.polar BA.dat B.dat type_map_file bec_file > /dev/null
+python3 -B ../compare.py ref.polar test_xsf.polar polar
+
 # clean up
-rm -f test.polar BA.dat B.dat
-##################### End Test get_p #####################
+rm test*.disp test*.xsf *.dat test*.polar
