@@ -1,6 +1,15 @@
 import numpy as np
 from pathlib import Path
 def parse_xsf_file(file_name: str) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    '''
+    parse the xsf file and return the cell, coord, and type_index
+
+    Args:
+        file_name (str): the name of the xsf file
+    
+    Returns:
+        tuple[np.ndarray, np.ndarray, np.ndarray]: cell, coord, and type_index (in string)
+    '''
     cell = np.zeros((3, 3))
     f = open(file_name, "r")
     f.readline()
@@ -22,6 +31,13 @@ def parse_xsf_file(file_name: str) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     return cell, coord, type_index
 
 def compare_stru(ref_file: str, test_file: str) -> None:
+    '''
+    compare the structure of two xsf files
+
+    Args:
+        ref_file (str): the reference xsf file
+        test_file (str): the test xsf file
+    '''
     ref_cell, ref_coord, ref_type_index = parse_xsf_file(ref_file)
     test_cell, test_coord, test_type_index = parse_xsf_file(test_file)
 
@@ -31,6 +47,13 @@ def compare_stru(ref_file: str, test_file: str) -> None:
         print(f"{Path(ref_file).absolute().parent}: Fail")
 
 def compare_disp(ref_file: str, test_file: str) -> None:
+    '''
+    compare the displacement in two files
+
+    Args:
+        ref_file (str): the reference file
+        test_file (str): the test file
+    '''
     ref_disp = np.loadtxt(ref_file, skiprows=5, usecols=(0, 1, 2))
     test_disp = np.loadtxt(test_file, usecols=(3, 4, 5))
 
@@ -40,6 +63,13 @@ def compare_disp(ref_file: str, test_file: str) -> None:
         print(f"{Path(ref_file).absolute().parent}: Fail, Max Error: {np.max(np.linalg.norm(ref_disp - test_disp, axis=1))}")
     
 def compare_polar(ref_file: str, test_file: str) -> None:
+    '''
+    compare the polarization in two files
+
+    Args:
+        ref_file (str): the reference file
+        test_file (str): the test file
+    '''
     ref_polar = np.loadtxt(ref_file, skiprows=1, usecols=(0, 1, 2))
     test_polar = np.loadtxt(test_file)
 
