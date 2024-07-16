@@ -45,6 +45,7 @@ git clone https://github.com/MoseyQAQ/FerroDispCalc.git
 1. Prerequisites:
     * C++ compiler
     * Eigen (For matrix operation)
+    * numpy, pymatgen (can be easily installed through: <kbd>pip3 install pymatgen</kbd>)
 
 2. Edit the following variables in <kbd>install.sh</kbd>:
 ```Bash

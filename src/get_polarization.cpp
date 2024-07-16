@@ -84,9 +84,9 @@ int main(int argc, char** argv) {
         double ratio = std::stod(argv[7]);
         int start_frame;
         if (ratio > 1) {
-            int start_frame = end_frame - ratio;
+            start_frame = end_frame - ratio;
         } else if (ratio <= 1 && ratio > 0) {
-            int start_frame = frame_pos.size() * (1 - ratio);
+            start_frame = frame_pos.size() * (1 - ratio);
         } else {
             std::cerr << "Invalid ratio: " << ratio << std::endl;
             exit(1);
