@@ -14,5 +14,8 @@ elif compare_type == 'polar':
     status, distance = compare_polar(ref_file, test_file)
 else:
     raise ValueError('Unknown compare type: %s' % compare_type)
-
-print(f"{str(Path(test_file).absolute()):<80} {'Pass' if status else 'Fail':10}  Max Error: {distance:.4f}")
+    
+folder_name = str(Path(test_file).absolute().parent.name)
+test_file_name = str(Path(test_file).absolute().name)
+ref_file_name = str(Path(ref_file).absolute().name)
+print(f"{folder_name:<30} {test_file_name:<20} {ref_file_name:<10} {'Pass' if status else 'Fail':5} {distance:8.4f}")
