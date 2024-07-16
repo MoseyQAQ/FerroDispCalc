@@ -1,3 +1,4 @@
+#!/bin/bash
 ####### general seeting #######
 EIGEN=/home/liulab/eigen-3.4.0
 CXX=g++
@@ -25,7 +26,9 @@ function make() {
 ####### clean #######
 function clean() {
     echo "Cleaning ..."
-    rm -rf build
+    if [ -d "build" ]; then
+        rm -rf build
+    fi
 }
 
 ####### install #######
@@ -38,7 +41,15 @@ function install() {
 }
 
 ####### testing #######
-# test the compiled program
+function test() {
+    echo "======== Test begins ========"
+    clean
+    make
+    BINPATH=$(pwd)/build/bin
+    cd test/; bash run_test.sh $BINPATH; cd ..
+    clean
+    echo "======== Test ends   ========"
+}
 
 ####### main #######
 if [ $# -eq 0 ]; then
@@ -49,8 +60,7 @@ elif [ $# -eq 1 ]; then
     elif [ $1 == "install" ]; then
         install
     elif [ $1 == "test" ]; then
-        #test, to be implemented
-        echo "Testing ..."
+        test
     elif [ $1 == "clean" ]; then
         clean
     else

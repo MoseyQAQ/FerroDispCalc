@@ -161,3 +161,7 @@ cython_debug/
 
 # test-traj directory (to large to be included in the repo)
 test-traj/
+
+# Group code
+Main.py 
+parameter*.py

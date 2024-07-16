@@ -11,8 +11,7 @@ Example:
     nl.build(center_elements, neighbor_elements, cutoff=4.0, neighbor_num=6)
     nl.write('neighbor_list.txt')
 
-
- Author: Denan Li
+Author: Denan Li
 Last modified: 2024-07-15
 Email: lidenan@westlake.edu.cn   
 
