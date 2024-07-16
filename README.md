@@ -46,7 +46,7 @@ For better performence, the main part of code is written in C++.
 ```Bash
 ####### general seeting #######
 EIGEN=/home/liulab/eigen-3.4.0  # path to your eigen header
-CXX=gcc                         # your c++ compiler
+CXX=g++                         # your c++ compiler
 CXXFLAGS="-O3" # or "-O3 -march=native" for example
 INSTALL_DIR=$(pwd)
 ###############################
