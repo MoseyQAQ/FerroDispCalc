@@ -18,7 +18,6 @@ Usage:
                           If the number >= 1, it is the last frame to be read. i.e. 2500 means the last 2500 frames will be read
 
 Author: Denan Li
-Last modified: 2024-07-16
 Email: lidenan@westlake.edu.cn
 
 Todo list:

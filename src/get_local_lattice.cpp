@@ -15,7 +15,6 @@ Usage:
         angle_x, angle_y, angle_z: the rotation angles about x, y, z axis in degree (default: 0 0 0)
 
 Author: Denan Li
-Last modified: 2024-07-18
 Email: lidenan@westlake.edu.cn
 */
 #include <iostream>

@@ -23,6 +23,7 @@ For better performence, the main part of code is written in C++.
 ├── src  //c++ source code
 │   ├── basic.hpp //This file contains basic functions to read lammps dump files.
 │   ├── get_averaged_structure.cpp //Calculate the average structure from LAMMPS dump file
+│   ├── get_local_lattice.cpp // cauculate the local lattice vector for ABO3 perovskite
 │   ├── get_polarization.cpp //Calculate the polarization of each perovskite unit call using LAMMPS dump file
 │   └── get_polarization_displacement.cpp //Calculate the polarization displacement from LAMMPS dump file
 └── test //files related to testing
@@ -38,16 +39,16 @@ For better performence, the main part of code is written in C++.
 ```
 
 ## Installation
-0. Get source code:
+1. Get source code:
 ```Bash
 git clone https://github.com/MoseyQAQ/FerroDispCalc.git
 ```
-1. Prerequisites:
+2. Prerequisites:
     * C++ compiler
     * Eigen (For matrix operation)
     * numpy, pymatgen (can be easily installed through: <kbd>pip3 install pymatgen</kbd>)
 
-2. Edit the following variables in <kbd>install.sh</kbd>:
+3. Edit the following variables in <kbd>install.sh</kbd>:
 ```Bash
 ####### general seeting #######
 EIGEN=/home/liulab/eigen-3.4.0  # path to your eigen header
@@ -57,7 +58,7 @@ INSTALL_DIR=$(pwd)
 ###############################
 ```
 
-3. Run the <kbd>install.sh</kbd>:
+4. Run the <kbd>install.sh</kbd>:
 ```Bash
 chmod +x install.sh
 ./install.sh make    # compile the source code
@@ -89,6 +90,15 @@ Options:
     * <kbd>type_map_file</kbd>: file contains the type map of atom types
     * <kbd>bec_file</kbd>: file contains the Born effective charge of each atom type
     * <kbd>ratio/last_frame</kbd>: If < 1, the last "ratio"% of frame will be read. If >= 1, the last "ratio" frames will be read. (only work when reading <kbd>LAMMPS dump</kbd>)
+
+4. <kbd>get_local_lattice</kbd> / <kbd>get_l</kbd>: calculate the local lattice vector for each perovskite unit cell in the large simulation cell. \
+Options:
+    * <kbd>input_file</kbd>: <kbd>.xsf</kbd>  file
+    * <kbd>output_file</kbd>: the output file to store the local lattice vectors
+    * <kbd>nl_file</kbd>: the neighbor list file
+    * <kbd>angle_x</kbd>: the rotation angles about x axis(in degree), default is 0
+    * <kbd>angle_y</kbd>: the rotation angles about y axis(in degree), default is 0
+    * <kbd>angle_z</kbd>: the rotation angles about z axis(in degree), default is 0
 
 ## Example
 The example is still under developed. You can find examples in "test" folder.
