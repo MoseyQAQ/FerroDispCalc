@@ -10,23 +10,22 @@ Compile:
     g++ get_polarization.cpp -o get_polarization -I /path/to/eigen
 
 Usage:
-    ./get_polarization input_file a_nl_file x_nl_file output_file start_frame end_frame step
+    ./get_polarization input_file output_file a_nl_file x_nl_file type_map_file bec_file ratio/last_frame
     OPTIONS:
-        input_file: LAMMPS dump file
+        input_file: LAMMPS dump file or xsf file
+        output_file: output file, each line contains the polarization of a unit cell.
         a_nl_file: neighbor list file for A site cations
         x_nl_file: neighbor list file for X site anions
-        output_file: output file, each line contains the polarization of a unit cell.
-        start_frame: the first frame to be read, starting from 0
-        end_frame: the last frame to be read
-        step: read every step frames
+        type_map_file: file contains the type map of atom types
+        bec_file: file contains the Born effective charge of each atom type
+        ratio/last_frame: If the number < 1, it is the ratio of frames to be read. i.e. 0.5 means last 50% of frames will be read
+                          If the number >= 1, it is the last frame to be read. i.e. 2500 means the last 2500 frames will be read
 
 Author: Denan Li
-Last modified: 2024-07-14
+Last modified: 2024-07-16
 Email: lidenan@westlake.edu.cn
 
 Todo list:
-    1. more testing cases
-    2. support read in .xsf file
     3. support output an averaged polarization.
     4. flexible IO
 */
@@ -43,41 +42,70 @@ std::vector<double> get_bec(std::string bec_file);
 Eigen::MatrixXd get_polarization_in_one_frame(Frame frame, 
                                               std::vector<std::vector<int>> a_neighbor_list, 
                                               std::vector<std::vector<int>> x_neighbor_list,
-                                              std::vector<double> bec_of_atoms,
-                                              int total_atoms_num);
+                                              std::vector<double> bec_of_atoms);
 
 int main(int argc, char** argv) {
+    // initialize input parameters
     std::string input_file = argv[1];
-    std::string a_nl_file = argv[2];
-    std::string x_nl_file = argv[3];
-    std::string output_file = argv[4];
-    int start_frame = std::stoi(argv[5]);
-    int end_frame = std::stoi(argv[6]);
-    int step = std::stoi(argv[7]);
-    std::string type_map_file = "type_map_file";
-    std::string bec_file = "bec_file";
+    std::string output_file = argv[2];
+    std::string a_nl_file = argv[3];
+    std::string x_nl_file = argv[4];
+    std::string type_map_file = argv[5];
+    std::string bec_file = argv[6];
 
-    int natoms = get_natoms(input_file);
-    std::vector<std::streampos> frame_pos = get_frame_positions(input_file);
-    std::vector<std::vector<int>> a_neighbor_list = parse_neighbor_list_file(a_nl_file);
-    std::vector<std::vector<int>> x_neighbor_list = parse_neighbor_list_file(x_nl_file);
-    
-    // build bec
-    std::vector<int> atom_types = read_atom_types(input_file, natoms);
-    std::vector<std::string> type_map = get_type_map(type_map_file);
+    // initialize neighbor list, bec, and frames
+    std::vector<Frame> frames;
     std::vector<double> bec = get_bec(bec_file);
     std::vector<double> bec_of_atoms;
-    for (int i = 0; i < natoms; i++) {
-        bec_of_atoms.push_back(bec[atom_types[i]-1]);
-    }
+    std::vector<std::vector<int>> a_neighbor_list = parse_neighbor_list_file(a_nl_file);
+    std::vector<std::vector<int>> x_neighbor_list = parse_neighbor_list_file(x_nl_file);
+    std::vector<std::string> type_map = get_type_map(type_map_file);
+    
+    // detect the traj_file format
+    // If the traj_file is in xsf format, read it using read_xsf function
+    std::string traj_file_format = input_file.substr(input_file.find_last_of(".") + 1);
+    if (traj_file_format == "xsf") {
+        frames.push_back(read_xsf(input_file)); // read xsf file
+        
+        //build bec
+        std::vector<int> atom_types = read_atom_types_xsf(input_file, type_map);
+        for (int i = 0; i < atom_types.size(); i++) {
+            bec_of_atoms.push_back(bec[atom_types[i]-1]);
+        }
+    } else {
+        // else: the traj_file is in lammps dump format
+        // get the number of atoms and frame positions
+        int natoms = get_natoms(input_file);
+        std::vector<std::streampos> frame_pos = get_frame_positions(input_file);
 
-    // read selected frames
-    std::vector<Frame> frames = read_selected_frames(input_file, natoms, frame_pos, start_frame, end_frame, step);
+        // set start_frame, end_frame, and step
+        int end_frame = frame_pos.size();
+        int step = 1;
+        double ratio = std::stod(argv[7]);
+        int start_frame;
+        if (ratio > 1) {
+            start_frame = end_frame - ratio;
+        } else if (ratio <= 1 && ratio > 0) {
+            start_frame = frame_pos.size() * (1 - ratio);
+        } else {
+            std::cerr << "Invalid ratio: " << ratio << std::endl;
+            exit(1);
+        }
+
+        // read selected frames
+        frames = read_selected_frames(input_file, natoms, frame_pos, start_frame, end_frame, step);
+
+        // build bec
+        std::vector<int> atom_types = read_atom_types(input_file, natoms);
+        for (int i = 0; i < natoms; i++) {
+            bec_of_atoms.push_back(bec[atom_types[i]-1]);
+        }
+    }
 
     // get polarization data in all frames
     std::vector<Eigen::MatrixXd> polarization(frames.size());
     for (int i = 0; i < frames.size(); i++) {
-        polarization[i] = get_polarization_in_one_frame(frames[i], a_neighbor_list, x_neighbor_list, bec_of_atoms, natoms);
+        polarization[i] = get_polarization_in_one_frame(frames[i], a_neighbor_list, x_neighbor_list, bec_of_atoms);
     }
 
     // write output file
@@ -96,8 +124,7 @@ int main(int argc, char** argv) {
 Eigen::MatrixXd get_polarization_in_one_frame(Frame frame, 
                                               std::vector<std::vector<int>> a_neighbor_list, 
                                               std::vector<std::vector<int>> x_neighbor_list,
-                                              std::vector<double> bec_of_atoms,
-                                              int total_atoms_num) {
+                                              std::vector<double> bec_of_atoms) {
     // check if the number of atoms in a_neighbor_list and x_neighbor_list are the same
     if (a_neighbor_list.size() != x_neighbor_list.size()) {
         std::cerr << "The number of atoms in a_neighbor_list and x_neighbor_list are different" << std::endl;
@@ -119,37 +146,13 @@ Eigen::MatrixXd get_polarization_in_one_frame(Frame frame,
         for (int j = 1; j < a_neighbor_list[i].size(); j++) {
 
             // check pbc
-            Eigen::RowVector3d neighbor_coord = frame.coords.row(a_neighbor_list[i][j]);
-            Eigen::RowVector3d diff = neighbor_coord - center;
-            Eigen::RowVector3d diff_frac = diff * frame.cell.inverse();
-            Eigen::RowVector3d neighbor_coord_frac = neighbor_coord * frame.cell.inverse();
-
-            for (int k = 0; k < 3; k++) {
-                if (diff_frac(k) > 0.5) {
-                    neighbor_coord_frac(k) -= 1;
-                } else if (diff_frac(k) < -0.5) {
-                    neighbor_coord_frac(k) += 1;
-                }
-            }
-            neighbor_coord = neighbor_coord_frac * frame.cell;
+            Eigen::RowVector3d neighbor_coord = apply_pbc(frame.coords.row(a_neighbor_list[i][j]), center, frame.cell);
             term_a += bec_of_atoms[a_neighbor_list[i][j]] * neighbor_coord;
         }
 
         // loop over all X site anions
         for (int j = 1; j < x_neighbor_list[i].size(); j++) {
-            Eigen::RowVector3d neighbor_coord = frame.coords.row(x_neighbor_list[i][j]);
-            Eigen::RowVector3d diff = neighbor_coord - center;
-            Eigen::RowVector3d diff_frac = diff * frame.cell.inverse();
-            Eigen::RowVector3d neighbor_coord_frac = neighbor_coord * frame.cell.inverse();
-
-            for (int k = 0; k < 3; k++) {
-                if (diff_frac(k) > 0.5) {
-                    neighbor_coord_frac(k) -= 1;
-                } else if (diff_frac(k) < -0.5) {
-                    neighbor_coord_frac(k) += 1;
-                }
-            }
-            neighbor_coord = neighbor_coord_frac * frame.cell;
+            Eigen::RowVector3d neighbor_coord = apply_pbc(frame.coords.row(x_neighbor_list[i][j]), center, frame.cell);
             term_x += bec_of_atoms[x_neighbor_list[i][j]] * neighbor_coord;
         }
 
@@ -160,7 +163,7 @@ Eigen::MatrixXd get_polarization_in_one_frame(Frame frame,
 
     double volume = std::abs(frame.cell.determinant());
     double conversion_factor = 1.602176E-19 * 1.0E-10 * 1.0E30;
-    polarization = 0.2 * polarization * total_atoms_num * conversion_factor / volume; // 0.2 here convert total_atoms_num to number of unit cells.
+    polarization = a_neighbor_list.size() * polarization * conversion_factor / volume;
 
     return polarization;
 }

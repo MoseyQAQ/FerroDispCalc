@@ -21,9 +21,11 @@ functions:
     read_atom_types: read atom types (integer, not string)
     read_all_frames: read all frames
     read_selected_frames: read selected frames
+    read_atom_types_xsf: read atom types in xsf (integer, not string)
     read_xsf: read xsf file
     parse_neighbor_list_file: parse neighbor list file
     get_type_map: get type map
+    apply_pbc: calculate the neighbor coord after applying the PBC
 
 Todo list:
     1. support IO of .xsf format file
@@ -38,6 +40,7 @@ Todo list:
 #include <string>
 #include <Eigen/Dense>
 #include <iterator>
+#include <unordered_map>
 
 //structs Frame: store cell and coordinates of a frame
 struct Frame {
@@ -230,6 +233,36 @@ std::vector<Frame> read_selected_frames(std::string filename, int n_atoms, std::
     return frames;
 }
 
+/* read atom type in xsf
+    It convert the atom type from string to integer, according to the type_map
+*/
+std::vector<int> read_atom_types_xsf(std::string filename, std::vector<std::string> type_map) {
+    std::ifstream file(filename);
+    std::string line;
+    skip_lines(file, 6);
+    std::getline(file, line);
+    int n_atoms = std::stoi(line.substr(0, line.find(" ")));
+
+    // initialize variables
+    std::vector<int> atom_types(n_atoms);
+    std::unordered_map<std::string, int> type_index_map;
+    for (size_t j = 0; j < type_map.size(); ++j) {
+        type_index_map[type_map[j]] = j+1;
+    }
+
+    // read atom types
+    for (int i = 0; i < n_atoms; i++) {
+        std::getline(file, line);
+        std::istringstream iss(line);
+        std::string atom_type;
+        iss >> atom_type;
+        auto it = type_index_map.find(atom_type);
+        atom_types[i] = it->second;
+    }
+
+    return atom_types;
+}
+
 /* read xsf file */
 Frame read_xsf(std::string filename) {
     std::ifstream file(filename);
@@ -258,13 +291,16 @@ Frame read_xsf(std::string filename) {
 
     // read coordinates
     Eigen::MatrixXd coords(n_atoms, 3);
+    std::string atom_type;
+    double x, y, z;
     for (int i = 0; i < n_atoms; i++) {
         std::getline(file, line);
         std::istringstream iss(line);
-        std::vector<double> lineData((std::istream_iterator<double>(iss)), std::istream_iterator<double>());
-        coords(i, 0) = lineData[1];
-        coords(i, 1) = lineData[2];
-        coords(i, 2) = lineData[3];
+        iss >> atom_type;
+        iss >> x >> y >> z;
+        coords(i, 0) = x;
+        coords(i, 1) = y;
+        coords(i, 2) = z;
     }
 
     Frame frame;
@@ -309,5 +345,22 @@ std::vector<std::string> get_type_map(std::string filename) {
     }
 
     return type_map;
+}
+
+/* calculate the neighbor coord after applying the PBC */
+Eigen::RowVector3d apply_pbc(Eigen::RowVector3d neighbor, Eigen::RowVector3d center, Eigen::Matrix3d cell) {
+    Eigen::RowVector3d diff = neighbor - center;
+    Eigen::RowVector3d diff_frac = diff * cell.inverse();
+    Eigen::RowVector3d neighbor_frac = neighbor * cell.inverse();
+
+    for (int i = 0; i < 3; i++) {
+        if (diff_frac(i) > 0.5) {
+            neighbor_frac(i) -= 1;
+        } else if (diff_frac(i) < -0.5) {
+            neighbor_frac(i) += 1;
+        }
+    }
+
+    return neighbor_frac * cell;
 }
 #endif 

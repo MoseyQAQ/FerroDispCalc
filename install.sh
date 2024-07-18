@@ -13,11 +13,13 @@ function make() {
     $CXX $CXXFLAGS -I $EIGEN -o build/bin/get_averaged_structure src/get_averaged_structure.cpp --std=c++11
     $CXX $CXXFLAGS -I $EIGEN -o build/bin/get_polarization_displacement src/get_polarization_displacement.cpp --std=c++11
     $CXX $CXXFLAGS -I $EIGEN -o build/bin/get_polarization src/get_polarization.cpp --std=c++11
+    $CXX $CXXFLAGS -I $EIGEN -o build/bin/get_local_lattice src/get_local_lattice.cpp --std=c++11
 
     cd build/bin
     ln -s get_averaged_structure get_a
     ln -s get_polarization_displacement get_d
     ln -s get_polarization get_p
+    ln -s get_local_lattice get_l
     cd ../..
 
     cp -r ferrodispcalc build/

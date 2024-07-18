@@ -9,22 +9,19 @@ Compile:
     g++ get_polarization_displacement.cpp -O3 -o get_polarization_displacement -I /path/to/eigen
 
 Usage:
-    ./get_polarization_displacement traj_file nl_file output_file start_frame end_frame step
+    ./get_polarization_displacement traj_file output_file nl_file ratio/last_frame
     OPTIONS:
-        traj_file: LAMMPS dump file
-        nl_file: neighbor list file, it can be generated using "build_neighbor_list.py"
+        traj_file: LAMMPS dump file or xsf file
         output_file: output file, each line contains the original coordinates and displacements of a cation.
-        start_frame: the first frame to be read, starting from 0
-        end_frame: the last frame to be read
-        step: read every step frames
+        nl_file: neighbor list file, it can be generated using "build_neighbor_list.py"
+        ratio/last_frame: If the number < 1, it is the ratio of frames to be read. i.e. 0.5 means last 50% of frames will be read
+                          If the number >= 1, it is the last frame to be read. i.e. 2500 means the last 2500 frames will be read
 
 Author: Denan Li
-Last modified: 2024-07-12
+Last modified: 2024-07-16
 Email: lidenan@westlake.edu.cn
 
 Todo list:
-    1. more testing cases
-    2. support read in .xsf file
     3. support output an averaged polarization displacement.
 */
 
@@ -52,11 +49,12 @@ polarization_data get_polarization_displacement_in_one_frame(Frame frame, std::v
 int main(int argc, char** argv) {
     // setup input parameters
     std::string traj_file = argv[1];
-    std::string nl_file = argv[2];
-    std::string output_file = argv[3];
-    int start_frame = std::stoi(argv[4]);
-    int end_frame = std::stoi(argv[5]);
-    int step = std::stoi(argv[6]);
+    std::string output_file = argv[2];
+    std::string nl_file = argv[3];
+
+    // initialize neighbor list and frames
+    std::vector<std::vector<int>> neighbor_list = parse_nl_file(nl_file);
+    std::vector<Frame> frames;
 
     // check whether the output file exists, if so, exit
     std::ifstream check_file(output_file);
@@ -65,18 +63,41 @@ int main(int argc, char** argv) {
         exit(1);
     }
 
-    // read input file
-    int natoms = get_natoms(traj_file);
-    std::vector<std::streampos> frame_pos = get_frame_positions(traj_file);
-    std::vector<std::vector<int>> neighbor_list = parse_nl_file(nl_file);
-    
-    // print information
-    std::cout << "Number of atoms: " << natoms << std::endl;
-    std::cout << "Number of frames: " << frame_pos.size() << std::endl;
-    
-    // read selected frames
-    std::vector<Frame> frames = read_selected_frames(traj_file, natoms, frame_pos, start_frame, end_frame, step);
-    std::cout << "Frames read: " << frames.size() << std::endl;
+    // detect the traj_file format
+    // If the traj_file is in xsf format, read it using read_xsf function
+    std::string traj_file_format = traj_file.substr(traj_file.find_last_of(".") + 1);
+    if (traj_file_format == "xsf") {
+        // read xsf file
+        frames.push_back(read_xsf(traj_file));
+        std::cout << "Frames read: " << frames.size() << std::endl;
+    } else {
+        // else: the traj_file is in lammps dump format
+        // get the number of atoms and frame positions
+        int natoms = get_natoms(traj_file);
+        std::vector<std::streampos> frame_pos = get_frame_positions(traj_file);
+
+        // print information
+        std::cout << "Number of atoms: " << natoms << std::endl;
+        std::cout << "Number of frames: " << frame_pos.size() << std::endl;
+
+        // calculate the frame index to read in
+        int end_frame = frame_pos.size();
+        int step = 1;
+        double ratio = std::stod(argv[4]);
+        int start_frame;
+        if (ratio > 1) {
+            start_frame = end_frame - ratio;
+        } else if (ratio <= 1 && ratio > 0) {
+            start_frame = frame_pos.size() * (1 - ratio);
+        } else {
+            std::cerr << "Invalid ratio: " << ratio << std::endl;
+            exit(1);
+        }
+
+        // read selected frames
+        frames = read_selected_frames(traj_file, natoms, frame_pos, start_frame, end_frame, step);
+        std::cout << "Frames read: " << frames.size() << std::endl;
+    }
 
     // get polarization displacement data in all frames
     std::vector<polarization_data> data(frames.size());
@@ -127,21 +148,7 @@ polarization_data get_polarization_displacement_in_one_frame(Frame frame, std::v
 
         // loop over all neighbors of the center atom
         for (int j = 1; j < neighbor_list[i].size(); j++) {
-            // check pbc
-            Eigen::RowVector3d neighbor_coord = frame.coords.row(neighbor_list[i][j]);
-            Eigen::RowVector3d diff = neighbor_coord - center;
-            Eigen::RowVector3d diff_frac = diff * frame.cell.inverse();
-            Eigen::RowVector3d neighbor_coord_frac = neighbor_coord * frame.cell.inverse();
-
-            for (int k = 0; k < 3; k++) {
-                if (diff_frac(k) > 0.5) {
-                    neighbor_coord_frac(k) -= 1;
-                } else if (diff_frac(k) < -0.5) {
-                    neighbor_coord_frac(k) += 1;
-                }
-            }
-
-            neighbor_coord = neighbor_coord_frac * frame.cell;
+            Eigen::RowVector3d neighbor_coord = apply_pbc(frame.coords.row(neighbor_list[i][j]), center, frame.cell);
             neighbor += neighbor_coord;
         }
 
