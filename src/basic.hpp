@@ -25,6 +25,7 @@ functions:
     read_xsf: read xsf file
     parse_neighbor_list_file: parse neighbor list file
     get_type_map: get type map
+    apply_pbc: calculate the neighbor coord after applying the PBC
 
 Todo list:
     1. support IO of .xsf format file
@@ -344,5 +345,22 @@ std::vector<std::string> get_type_map(std::string filename) {
     }
 
     return type_map;
+}
+
+/* calculate the neighbor coord after applying the PBC */
+Eigen::RowVector3d apply_pbc(Eigen::RowVector3d neighbor, Eigen::RowVector3d center, Eigen::Matrix3d cell) {
+    Eigen::RowVector3d diff = neighbor - center;
+    Eigen::RowVector3d diff_frac = diff * cell.inverse();
+    Eigen::RowVector3d neighbor_frac = neighbor * cell.inverse();
+
+    for (int i = 0; i < 3; i++) {
+        if (diff_frac(i) > 0.5) {
+            neighbor_frac(i) -= 1;
+        } else if (diff_frac(i) < -0.5) {
+            neighbor_frac(i) += 1;
+        }
+    }
+
+    return neighbor_frac * cell;
 }
 #endif 

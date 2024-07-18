@@ -148,21 +148,7 @@ polarization_data get_polarization_displacement_in_one_frame(Frame frame, std::v
 
         // loop over all neighbors of the center atom
         for (int j = 1; j < neighbor_list[i].size(); j++) {
-            // check pbc
-            Eigen::RowVector3d neighbor_coord = frame.coords.row(neighbor_list[i][j]);
-            Eigen::RowVector3d diff = neighbor_coord - center;
-            Eigen::RowVector3d diff_frac = diff * frame.cell.inverse();
-            Eigen::RowVector3d neighbor_coord_frac = neighbor_coord * frame.cell.inverse();
-
-            for (int k = 0; k < 3; k++) {
-                if (diff_frac(k) > 0.5) {
-                    neighbor_coord_frac(k) -= 1;
-                } else if (diff_frac(k) < -0.5) {
-                    neighbor_coord_frac(k) += 1;
-                }
-            }
-
-            neighbor_coord = neighbor_coord_frac * frame.cell;
+            Eigen::RowVector3d neighbor_coord = apply_pbc(frame.coords.row(neighbor_list[i][j]), center, frame.cell);
             neighbor += neighbor_coord;
         }
 
