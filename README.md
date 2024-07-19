@@ -96,9 +96,9 @@ Options:
     * <kbd>input_file</kbd>: <kbd>.xsf</kbd>  file
     * <kbd>output_file</kbd>: the output file to store the local lattice vectors
     * <kbd>nl_file</kbd>: the neighbor list file
-    * <kbd>angle_x</kbd>: the rotation angles about x axis(in degree), default is 0
-    * <kbd>angle_y</kbd>: the rotation angles about y axis(in degree), default is 0
-    * <kbd>angle_z</kbd>: the rotation angles about z axis(in degree), default is 0
+    * <kbd>angle_x</kbd>: the rotation angles about x axis (in degree), default is 0
+    * <kbd>angle_y</kbd>: the rotation angles about y axis (in degree), default is 0
+    * <kbd>angle_z</kbd>: the rotation angles about z axis (in degree), default is 0
 
 ## Example
 The example is still under developed. You can find examples in "test" folder.
