@@ -165,3 +165,4 @@ test-traj/
 # Group code
 Main.py 
 parameter*.py
+test/STOPZO_superlattice/* 

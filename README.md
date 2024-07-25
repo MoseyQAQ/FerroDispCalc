@@ -1,10 +1,9 @@
 # FerroDispCalc
-
-Calculator of polarization displacements and polarization of ferroelectrics in molecular dynamics simulations. 
+FerroDispCalc (FDC) is a Calculator of polarization displacements and polarization of ferroelectrics in molecular dynamics simulations. 
 
 This code is designed for: 
-* build neighbor list for ferrorelectrics (ABO3 perovskite)
-* calculate the polarization and displacement from a LAMMPS dump file. 
+* build neighbor list for ferrorelectrics.
+* calculate the polarization, displacement, and local lattice from a LAMMPS dump file. 
 
 For better performence, the main part of code is written in C++.
 
@@ -104,4 +103,5 @@ Options:
 The example is still under developed. You can find examples in "test" folder.
 
 ## Todo list
-imporved IO, doc
+output in npy for hdf5 format
+lammps plugin

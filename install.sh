@@ -1,6 +1,6 @@
 #!/bin/bash
 ####### general seeting #######
-EIGEN=/home/liulab/eigen-3.4.0
+EIGEN=/home/liulab/software/eigen-3.4.0
 CXX=g++
 CXXFLAGS="-O3" # or "-O3 -march=native" for example
 INSTALL_DIR=$(pwd) # default to the current directory
