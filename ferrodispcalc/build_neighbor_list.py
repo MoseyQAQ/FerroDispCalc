@@ -95,6 +95,8 @@ class NeighborListABO3:
         for center in center_elements_index:
             if len(result[center]) != neighbor_num and not defect:
                 raise ValueError(f"{center}, {self.st[center].specie} has {len(result[center])} neighbors, expected {neighbor_num}")  
+            elif len(result[center]) != neighbor_num and defect:
+                neighbor_elements_index.append([center]*neighbor_num)   # fill the missing neighbors with the center itself
             else:
                 neighbor_elements_index.append(result[center])
         
