@@ -7,11 +7,10 @@ Example:
     pl = Ploter('avg_dump.xsf', '1.disp')
     pl.plot('plot')
 '''
-
-import numpy as np 
 import matplotlib.pyplot as plt
 from ase.geometry import get_layers
 from ase.io import read
+import numpy as np 
 import os
 
 class Ploter:
