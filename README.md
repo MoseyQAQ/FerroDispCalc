@@ -103,5 +103,8 @@ Options:
 The example is still under developed. You can find examples in "test" folder.
 
 ## Todo list
-output in npy for hdf5 format
-lammps plugin
+1. interface with Python
+2. CL tool, and preset workflow
+3. can: pip install!
+4. more testing, example, readme, and doc
+5. lammps plugin

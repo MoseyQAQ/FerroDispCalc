@@ -166,3 +166,4 @@ test-traj/
 Main.py 
 parameter*.py
 test/STOPZO_superlattice/* 
+.vscode/*
