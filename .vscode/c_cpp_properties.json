@@ -1,0 +1,27 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "/home/liulab/software/pybind11-2.13.1/include",
+ "/home/liulab/software/fftw-3.3.10/include",
+ "/home/liulab/software/openmpi-5.0.5/include",
+ "/home/liulab/software/eigen-3.4.0",
+ "/usr/include/c++/13",
+ "/usr/include/x86_64-linux-gnu/c++/13",
+ "/usr/include/c++/13/backward",
+"/usr/lib/gcc/x86_64-linux-gnu/13/include",
+ "/usr/local/include",
+ "/usr/include/x86_64-linux-gnu",
+ "/usr/include",
+ "~/anaconda3/include/python3.11/"
+            ],
+            "defines": [],
+            "cStandard": "c17",
+            "cppStandard": "gnu++17",
+            "intelliSenseMode": "linux-gcc-x64"
+        }
+    ],
+    "version": 4
+}
