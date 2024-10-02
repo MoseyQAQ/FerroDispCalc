@@ -1,68 +1,100 @@
-'''
-build_neighbor_list.py:
-    This module is used to build the neighbor list for the ABO3 perovskite structure.
-    The input structure file can be in the format of lammps dump file or other formats.
-
-Example:
-    from build_neighbor_list import NeighborListABO3
-    nl = NeighborListABO3('structure.lmp', 'lmp-dump', type_map=['Pb', 'Sr', 'Ti', 'O'])
-    center_elements = ['Pb', 'Sr']
-    neighbor_elements = ['O']
-    nl.build(center_elements, neighbor_elements, cutoff=4.0, neighbor_num=6)
-    nl.write('neighbor_list.txt')
-
-Author: Denan Li
-Last modified: 2024-07-15
-Email: lidenan@westlake.edu.cn   
-
-Todo list:
-    1. support HfO2 structure
-'''
 import numpy as np
-from pymatgen.core import Structure, Lattice
+from pymatgen.core import Structure
+from pymatgen.io.ase import AseAtomsAdaptor
+from ase.io import read
+from ase import Atoms
+from ferrodispcalc.io import LAMMPSdump
+import os
 
-class NeighborListABO3:
-    def __init__(self, file_name: str, format: str,
-                 type_map: list[str] = None):
-        '''
-        initialize the NeighborListABO3 object.
+class NeighborList:
+    '''NeighborList class is used to build the neighbor list for a given atomic structure.
 
-        Args:
-            file_name (str): The file name of the structure file.
-            format (str): The format of the structure file.
-            type_map (list[str]): The list of element names in the structure file. Default is None.
+    Attributes:
+    ----------
+    input: str | pymatgen.core.Structure | ase.Atoms
+        The input file name or the structure object.
+    format: str
+        The format of the input file. Default is None. For LAMMPS dump file, the format should be 'lmp-dump'.
+    type_map: list[str]
+        A list mapping the types of atoms as specified in the lammps dump file to their element symbols. Default is None.
+    stru: pymatgen.core.Structure
+        The structure object, used to build the neighbor list.
+    nl: numpy.ndarray
+        The neighbor list array where the first column is the index of the center element and the remaining columns are the indices of its neighbors. Indices are 1-based.
+
+    Example:
+    --------
+    >>> from ferrodispcalc.build_neighbor_list import NeighborList
+    >>> nl = NeighborList('POSCAR', format='vasp')
+    >>> nl.build(['Pb', 'Sr'], ['O'], 4.0, 12)
+    >>> nl.write('neighbor_list.dat')
+
+    Methods:
+    --------
+    build(center_elements, neighbor_elements, cutoff, neighbor_num, defect)
+        Constructs the neighbor list based on specified criteria.
+    write(output)
+        Writes the constructed neighbor list to a file in a specified format.
+
+    '''
+    def __init__(self, input: str | Structure | Atoms, 
+                 format: str=None, 
+                 type_map: list[str]=None):
         '''
-        self.file_name = file_name
+        Initializes the NeighborList object.
+
+        Parameters
+        ----------
+        input : str | Structure | Atoms
+            The input for creating the structure object. This could be a path to a file or a structure object
+            from Pymatgen (`Structure`) or ASE (`Atoms`).
+        format : str, optional
+            The file format of the input if it is a path. If the input is a LAMMPS dump file, the format should be 'lmp-dump'.
+        type_map : list[str], optional
+            If using 'lmp-dump' format, which does not inherently contain atomic symbols, this should map types to elements.
+
+        Raises
+        ------
+        FileNotFoundError
+            If a file path is provided and the file does not exist.
+        ValueError
+            If the input format is not supported or cannot be properly read.
+        '''
+        self.input = input
         self.format = format
         self.type_map = type_map
-        
-        # if the format is lmp-dump, read the structure from the lammps dump file
-        if self.format == 'lmp-dump':
-            f = open(self.file_name, 'r')
-            self.natoms = self._get_natoms()
-            cell, type_index, coord = self._read_lmp_traj(f)
-            f.close()
-            self.st = Structure(Lattice(cell), type_index, coord, coords_are_cartesian=True)
-        
-        # if other format, read the structure with pymatgen
-        else:
-            self.st = Structure.from_file(self.file_name)
-    def build(self, center_elements: list[str], neighbor_elements: list[str],
-              cutoff: float = 4.0, neighbor_num: int = 6,
-              defect: bool = False) -> tuple[list, list]:
-        '''
-        Build the neighbor list for the center elements and neighbor elements.
+        self.stru = self.__initialize_stru()
 
-        Args:
-            center_elements (list[str]): The list of center elements. i.e. ['Pb', 'Sr']
-            neighbor_elements (list[str]): The list of neighbor elements. i.e. ['O']
-            cutoff (float): The cutoff radius for the neighbor search, unit is A. Default is 4.0.
-            neighbor_num (int): The number of neighbors for each center element. Default is 6.
-            defect (bool): If True, the number of neighbors can be less than neighbor_num. Default is False.
-        
-        Returns:
-            tuple: The index list of the center elements and the neighbor elements.
-        '''
+    def build(self, center_elements: list[str], neighbor_elements: list[str], 
+              cutoff: float, neighbor_num: int, 
+              defect: bool=False) -> np.ndarray:
+        """
+        Constructs the neighbor list based on specified criteria.
+
+        Parameters
+        ----------
+        center_elements : list[str]
+            Elements to consider as centers in the neighbor search.
+        neighbor_elements : list[str]
+            Elements to consider as neighbors in the search.
+        cutoff : float
+            The cutoff distance for considering an atom as a neighbor.
+        neighbor_num : int
+            The exact number of neighbors expected for each center element.
+        defect : bool, optional
+            If True, allows the number of neighbors to be different from `neighbor_num`.
+
+        Returns
+        -------
+        numpy.ndarray
+            The constructed neighbor list with 1-based indexing. The first column is the index of the center element and the remaining columns are the indices of its neighbors.
+
+        Raises
+        ------
+        ValueError
+            If the number of neighbors does not match `neighbor_num` and `defect` is False.
+        """
+
         # initialize the index list
         center_elements_index = []
         neighbor_elements_index = []
@@ -72,111 +104,132 @@ class NeighborListABO3:
         neighbor_elements_set = set(neighbor_elements)
 
         # find the index of the center elements
-        for idx in range(len(self.st)):
-            if str(self.st[idx].specie) in center_elements_set:
+        for idx in range(len(self.stru)):
+            if str(self.stru[idx].specie) in center_elements_set:
                 center_elements_index.append(idx)
         
         # build the neighbor list
-        center_idx, point_idx, offset_vectors, distances = self.st.get_neighbor_list(r=cutoff)
+        center_idx, point_idx, offset_vectors, distances = self.stru.get_neighbor_list(r=cutoff)
 
         # select the elements that are in the center_elements and neighbor_elements
         center_elements_mask = np.isin(center_idx, center_elements_index)
-        neighbor_elements_mask = np.array([str(self.st[idx].specie) in neighbor_elements_set for idx in point_idx])
+        neighbor_elements_mask = np.array([str(self.stru[idx].specie) in neighbor_elements_set for idx in point_idx])
         combined_mask = center_elements_mask & neighbor_elements_mask
         selected_center_elements_index = center_idx[combined_mask]
         selected_neighbor_elements_index = point_idx[combined_mask]
+        selected_offset_vectors = offset_vectors[combined_mask]
+        selected_distances = distances[combined_mask]
 
         # build the neighbor list in the format of {center: [neighbor1, neighbor2, ...]}
         result = {element_index: [] for element_index in center_elements_index}
-        for center, point in zip(selected_center_elements_index, selected_neighbor_elements_index):
+        result_distance = {element_index: [] for element_index in center_elements_index}
+        result_offset = {element_index: [] for element_index in center_elements_index}
+        for center, point, offset, distance in zip(selected_center_elements_index, selected_neighbor_elements_index, selected_offset_vectors, selected_distances):
             result[center].append(point)
+            result_distance[center].append(distance)
+            result_offset[center].append(offset)
+        
+        # sort the neighbors by distance
+        for center in center_elements_index:
+            if len(result[center]) > 0:
+                result[center] = np.array(result[center])
+                result_distance[center] = np.array(result_distance[center])
+                result_offset[center] = np.array(result_offset[center])
+                result[center] = result[center][np.argsort(result_distance[center])]
         
         # check if the number of neighbors is correct
+        # if defect is True, fill the missing neighbors with the center itself
+        # if defect is False, raise an error
+        # if the number of neighbors is more than neighbor_num, only keep the first neighbor_num neighbors
         for center in center_elements_index:
-            if len(result[center]) != neighbor_num and not defect:
-                raise ValueError(f"{center}, {self.st[center].specie} has {len(result[center])} neighbors, expected {neighbor_num}")  
-            elif len(result[center]) != neighbor_num and defect:
-                print(f"Warning: {center} has {len(result[center])} neighbors, expected {neighbor_num}")
-                neighbor_elements_index.append([center]*neighbor_num)   # fill the missing neighbors with the center itself
-            else:
-                neighbor_elements_index.append(result[center])
+            if len(result[center]) < neighbor_num and not defect:
+                raise ValueError(f"{center} {self.stru[center].specie} has {len(result[center])} neighbors, expected at least {neighbor_num}")
+            elif len(result[center]) < neighbor_num and defect:
+                print(f"Warning: {center} has {len(result[center])} neighbors, expected at least {neighbor_num}")
+                neighbor_elements_index.append([center]*neighbor_num)
+            elif len(result[center]) >= neighbor_num:
+                neighbor_elements_index.append(result[center][:neighbor_num])
         
-        self.center_elements_index = np.array(center_elements_index)
-        self.neighbor_elements_index = np.array(neighbor_elements_index)
-
-        return center_elements_index, neighbor_elements_index
+        center_elements_index = np.array(center_elements_index)
+        neighbor_elements_index = np.array(neighbor_elements_index)
+        self.nl = np.concatenate([center_elements_index[:,np.newaxis], neighbor_elements_index], axis=1)
+        self.nl +=1 # convert the index to 1-based
+        return self.nl
     
-    def write(self, file_name: str):
+    def filter(self, nl: np.ndarray=None, axis: int=2, rcut: float=1, neighbor_num: int=3) -> np.ndarray:
         '''
-        write the neighbor list to a file.
-        The first column is the index of the center atoms, 
-        the rest columns are the index of the neighbor atoms.
+        Filter the neighbor list based on the distance along the specified axis.
+        It's useful for GaN system where the Ga atom is the center atom and the N atom is the neighbor atom.
 
-        Args:
-            file_name (str): The file name to write the neighbor list.
+        Parameters
+        ----------
+        nl : numpy.ndarray, optional
+            The neighbor list to be filtered. If None, use the self.nl.
+        axis : int, optional
+            The axis along which the distance is calculated. Default is 2, which is the z-axis.
+        rcut : float, optional
+            The cutoff distance along the axis. Default is 1. Unit is Angstrom.
+        neighbor_num : int, optional
+            The number of neighbors to keep. Default is 3.
+        
+        Returns
+        -------
+        numpy.ndarray
+            The filtered neighbor list with 1-based indexing. The first column is the index of the center element and the remaining columns are the indices of its neighbors.
         '''
-        result = np.concatenate([self.center_elements_index[:,np.newaxis], self.neighbor_elements_index], axis=1)
-        np.savetxt(file_name, result, fmt='%10d')
+
+        nl = self.nl.copy() if nl is None else nl
+        center = nl[:,0]
+        neighbors = nl[:,1:]
+        center_pos = self.stru.cart_coords[center-1]
+        new_nl = np.zeros((nl.shape[0], neighbor_num+1), dtype=int)
+        new_nl[:,0] = center
+        for idx,n in enumerate(neighbors):
+            neighbor_pos = self.stru.cart_coords[n-1]
+            diff = np.abs(neighbor_pos - center_pos[idx])[:,axis]
+            mask = diff < rcut
+            new_nl[idx,1:neighbor_num+1] = n[mask]
+
+        self.nl = new_nl
+        return self.nl
     
-    def _get_natoms(self) -> int:
-        flag = False
-        with open(self.file_name, 'r') as f:
-            for line in f:
-                if 'ITEM: NUMBER OF ATOMS' in line:
-                    flag = True
-                    continue
-                if flag:
-                    natoms = int(line)
-                    break
-        return natoms
-    
-    def _read_cell(self,f) -> np.ndarray:
-        line = f.readline().split()
-        line = [ float(x) for x in line ]
-        xlo_bound = line[0]
-        xhi_bound = line[1]
-        xy = line[2]
-        line = f.readline().split()
-        line = [ float(x) for x in line ]
-        ylo_bound = line[0]
-        yhi_bound = line[1]
-        xz = line[2]
-        line = f.readline().split()
-        line = [ float(x) for x in line ]
-        zlo_bound = line[0]
-        zhi_bound = line[1]
-        yz = line[2]
-        xlo = xlo_bound - min(0.0, xy, xz, xy+xz)
-        xhi = xhi_bound - max(0.0, xy, xz, xy+xz)
-        ylo = ylo_bound - min(0.0, yz)
-        yhi = yhi_bound - max(0.0, yz)
-        zlo = zlo_bound
-        zhi = zhi_bound
-        xx = xhi - xlo
-        yy = yhi - ylo
-        zz = zhi - zlo
-        cell = np.zeros((3,3))
-        cell[0,:] = [xx, 0, 0]
-        cell[1,:] = [xy, yy, 0]
-        cell[2,:] = [xz, yz, zz]
-        return cell
-    def _read_atoms(self,f) -> tuple:
-        type_index = [None]*self.natoms
-        coord = np.zeros((self.natoms,3))
-        for i in range(self.natoms):
-            line = f.readline().split()
-            type_index[i] = self.type_map[int(line[1])-1]
-            tmp = [ float(x) for x in line[2:] ]
-            coord[i,0] = tmp[0]
-            coord[i,1] = tmp[1]
-            coord[i,2] = tmp[2]
-        return type_index, coord
-    def _skip_blank_line(self,f,n:int) -> None:
-        for i in range(n):
-            f.readline()
-    def _read_lmp_traj(self,f) -> tuple:
-        self._skip_blank_line(f,5)
-        cell = self._read_cell(f)
-        self._skip_blank_line(f,1)
-        type_index, coord = self._read_atoms(f)
-        return cell, type_index, coord
+    def write(self, output: str):
+        """
+        Writes the neighbor list to a file.
+
+        Parameters
+        ----------
+        output : str
+            The file path where the neighbor list will be saved.
+
+        Raises
+        ------
+        FileExistsError
+            If the output file already exists to prevent accidental overwriting.
+        """
+        if os.path.exists(output):
+            raise FileExistsError(f'{output} already exists.')
+        else:
+            np.savetxt(output, self.nl, fmt='%10d')
+
+    def __initialize_stru(self):
+
+        # initialize the structure object
+        # if the input is a structure object, try to convert it to pymatgen structure
+        if isinstance(self.input, str):
+            if not os.path.exists(self.input):
+                raise FileNotFoundError(f'{self.input} does not exist.')
+            if self.format == 'lmp-dump':
+                stru = LAMMPSdump(self.input, self.type_map).get_first_frame()
+            else:
+                try:
+                    atom = read(self.input, format=self.format)
+                    stru = AseAtomsAdaptor.get_structure(atom)
+                except Exception as e:
+                    print(f'ASE Error: {e}; Trying to read the structure with pymatgen...')
+                    try:
+                        stru = Structure.from_file(self.input)
+                    except Exception as e:
+                        print(f'Pymatgen Error: {e}')
+                        raise ValueError('The input file format is not supported.')
+        return stru

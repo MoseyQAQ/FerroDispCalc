@@ -103,8 +103,9 @@ Options:
 The example is still under developed. You can find examples in "test" folder.
 
 ## Todo list
-1. interface with Python
-2. CL tool, and preset workflow
-3. can: pip install!
-4. more testing, example, readme, and doc
-5. lammps plugin
+1. Py负责：构建neighbor list，传递参数给c++，进行读取，计算
+2. C++：接受参数，计算（写一个npy文件）
+3. 命令行参数
+4. github actions： pages和auto test
+5. 预构建workflow
+6. 支持3-5族半导体
