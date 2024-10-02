@@ -1,10 +1,10 @@
 import numpy as np
+import os
 from pymatgen.core import Structure
 from pymatgen.io.ase import AseAtomsAdaptor
 from ase.io import read
 from ase import Atoms
 from ferrodispcalc.io import LAMMPSdump
-import os
 
 class NeighborList:
     '''NeighborList class is used to build the neighbor list for a given atomic structure.
@@ -33,6 +33,8 @@ class NeighborList:
     --------
     build(center_elements, neighbor_elements, cutoff, neighbor_num, defect)
         Constructs the neighbor list based on specified criteria.
+    filter(nl, axis, rcut, neighbor_num)
+        Filter the neighbor list based on the distance along the specified axis.
     write(output)
         Writes the constructed neighbor list to a file in a specified format.
 
@@ -181,11 +183,11 @@ class NeighborList:
         nl = self.nl.copy() if nl is None else nl
         center = nl[:,0]
         neighbors = nl[:,1:]
-        center_pos = self.stru.cart_coords[center-1]
-        new_nl = np.zeros((nl.shape[0], neighbor_num+1), dtype=int)
+        center_pos = self.stru.cart_coords[center-1] # 0-based index
+        new_nl = np.zeros((nl.shape[0], neighbor_num+1), dtype=int) # store the new neighbor list, 1-based index
         new_nl[:,0] = center
         for idx,n in enumerate(neighbors):
-            neighbor_pos = self.stru.cart_coords[n-1]
+            neighbor_pos = self.stru.cart_coords[n-1] # 0-based index
             diff = np.abs(neighbor_pos - center_pos[idx])[:,axis]
             mask = diff < rcut
             new_nl[idx,1:neighbor_num+1] = n[mask]
@@ -193,7 +195,7 @@ class NeighborList:
         self.nl = new_nl
         return self.nl
     
-    def write(self, output: str):
+    def write(self, output: str) -> Structure:
         """
         Writes the neighbor list to a file.
 
