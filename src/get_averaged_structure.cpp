@@ -43,7 +43,6 @@ Eigen::MatrixXd get_avg_coords(std::vector<Frame> frames, int natoms) {
 
 std::tuple<Eigen::Matrix3d, Eigen::MatrixXd, std::vector<int>> get_averaged_structure(std::string input_file,
                                                                                        std::vector<std::string> type_map,
-                                                                                       std::string output_file,
                                                                                        std::vector<int> frames_to_read) {
     // read input file
     int natoms = get_natoms(input_file);

@@ -5,7 +5,7 @@
 
 namespace py = pybind11;
 
-PYBIND11_MODULE(get_averaged_structure, m) {
+PYBIND11_MODULE(fdc, m) {
     m.doc() = "Averaging the structure of a trajectory";
 
     m.def("get_averaged_structure", &get_averaged_structure, "A function to average the structure of a trajectory");

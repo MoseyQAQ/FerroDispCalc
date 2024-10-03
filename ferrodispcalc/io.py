@@ -14,12 +14,42 @@ class LAMMPSdump:
         self.type_map = type_map
 
     def get_first_frame(self) -> Structure:
+        '''
+        get the first frame in the lammps dump file.
+
+        Returns:
+        -------
+        Structure: 
+            The structure object of the first frame.
+        '''
         f = open(self.file_name, 'r')
         self.natoms = self.__get_natoms()
         cell, type_index, coord = self._read_lmp_traj(f)
         f.close()
         stru = Structure(Lattice(cell), type_index, coord, coords_are_cartesian=True)
         return stru
+    
+    def get_nframes(self) -> int:
+        '''
+        get the number of frames in the lammps dump file.
+
+        Parameters:
+        ----------
+        None
+
+        Returns:
+        -------
+        int: 
+            The number of frames.
+        '''
+
+        f = open(self.file_name, 'r')
+        nframes = 0
+        for line in f:
+            if 'ITEM: TIMESTEP' in line:
+                nframes += 1
+        f.close()
+        return nframes
     
     def __get_natoms(self) -> int:
         '''
