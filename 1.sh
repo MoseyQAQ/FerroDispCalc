@@ -1,0 +1,1 @@
+export PYTHONPATH=/calc_cache/lidenan/develop/FerroDispCalc:$PYTHONPATH

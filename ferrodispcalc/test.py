@@ -1,11 +1,23 @@
-from ferrodispcalc.compute import Compute
-from ferrodispcalc.type_map import UniPero
-from pymatgen.io.ase import AseAtomsAdaptor
-from ase.io import write
-c = Compute(input='../test/BaTiO3/traj.lammpstrj', format='lmp-dump', type_map=UniPero)
+from build_neighbor_list import NeighborList
+from type_map import UniPero
 
-stru = c.get_averaged_structure(select=slice(0, 10))
-print('finished')
-#stru.to('POSCAR', 'stru.vasp')
-atoms = AseAtomsAdaptor.get_atoms(stru)
-write("1.vasp",atoms)
+nl = NeighborList(
+    input='Sc8_0.vasp',
+    format='vasp',
+    type_map=None
+)
+
+nl.build(
+    center_elements=['Ga','Sc'],
+    neighbor_elements=['N'],
+    cutoff=4,
+    neighbor_num=4,
+    defect=False
+)
+
+nl.filter(nl=None,
+          axis=2,
+          rcut=1,
+          neighbor_num=3)
+
+nl.write("nl.dat")

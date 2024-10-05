@@ -188,7 +188,15 @@ class NeighborList:
         new_nl[:,0] = center
         for idx,n in enumerate(neighbors):
             neighbor_pos = self.stru.cart_coords[n-1] # 0-based index
-            diff = np.abs(neighbor_pos - center_pos[idx])[:,axis]
+            diff = neighbor_pos - center_pos[idx]
+
+            # apply MIC
+            box_inv = np.linalg.inv(self.stru.lattice.matrix)
+            diff_frac = np.dot(diff, box_inv)
+            diff_frac[diff_frac < -0.5] += 1
+            diff_frac[diff_frac > 0.5] -= 1
+            diff = np.dot(diff_frac, self.stru.lattice.matrix)
+            diff = np.abs(diff[:,axis])
             mask = diff < rcut
             new_nl[idx,1:neighbor_num+1] = n[mask]
 
