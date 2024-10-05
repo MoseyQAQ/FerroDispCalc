@@ -2,28 +2,61 @@ import numpy as np
 from pymatgen.core import Structure, Lattice
 
 class LAMMPSdump:
+    '''LAMMPSdump calss is used to read the lammps dump file.
+        
+        Attributes:
+        ----------
+        file_name: str
+            The name of the lammps dump file.
+        type_map: list[str]
+            The list of atom types. The index of the list is the atom type in the lammps dump file.
+        
+        Example:
+        --------
+        >>> from ferrodispcalc.io import LAMMPSdump
+        >>> from ferrodispcalc.type_map import UniPero
+        >>> lmp = LAMMPSdump('dump.lammpstrj', UniPero)
+        >>> stru = lmp.get_first_frame() # get the first frame, in pymatgen format.
+        >>> nframes = lmp.get_nframes() # get the number of frames in the lammps dump file.
+
+        Methods:
+        -------
+        get_first_frame():
+            get the first frame, in pymatgen format.
+        get_nframes():
+            get the number of frames.
+        get_natoms():
+            get the number of atoms.
+        '''
     def __init__(self, file_name: str, type_map: list[str] = None):
         '''
-        initialize the LAMMPSdump object.
+        Initialize the LAMMPSdump object.
 
-        Args:
-            file_name (str): The file name of the lammps dump file.
-            type_map (list[str]): The list of element names in the lammps dump file. Default is None.
+        Parameters:
+        ----------
+        file_name: str
+            The name of the lammps dump file.
+        type_map: list[str]
+            The list of atom types. The index of the list is the atom type in the lammps dump file.
         '''
         self.file_name = file_name
         self.type_map = type_map
 
     def get_first_frame(self) -> Structure:
         '''
-        get the first frame in the lammps dump file.
+        Get the first frame in the lammps dump file. Return the structure in pymatgen format.
+
+        Parameters:
+        ----------
+        None
 
         Returns:
         -------
-        Structure: 
-            The structure object of the first frame.
+        Structure:
+            The structure in pymatgen format.
         '''
         f = open(self.file_name, 'r')
-        self.natoms = self.__get_natoms()
+        self.natoms = self.get_natoms()
         cell, type_index, coord = self._read_lmp_traj(f)
         f.close()
         stru = Structure(Lattice(cell), type_index, coord, coords_are_cartesian=True)
@@ -31,7 +64,7 @@ class LAMMPSdump:
     
     def get_nframes(self) -> int:
         '''
-        get the number of frames in the lammps dump file.
+        Get the number of frames in the lammps dump file.
 
         Parameters:
         ----------
@@ -51,11 +84,12 @@ class LAMMPSdump:
         f.close()
         return nframes
     
-    def __get_natoms(self) -> int:
+    def get_natoms(self) -> int:
         '''
         Get the number of atoms in the lammps dump file.
 
         Returns:
+        -------
             int: The number of atoms.
         '''
         f = open(self.file_name, 'r')
@@ -67,6 +101,19 @@ class LAMMPSdump:
         return natoms
     
     def __read_cell(self,f) -> np.ndarray:
+        '''
+        Read the cell information.
+
+        Parameters:
+        ----------
+        f: file
+            The file object of the lammps dump file.
+        
+        Returns:
+        -------
+        np.ndarray:
+            The cell matrix.
+        '''
         line = f.readline().split()
         line = [ float(x) for x in line ]
         xlo_bound = line[0]
@@ -98,6 +145,22 @@ class LAMMPSdump:
         return cell
     
     def __read_atoms(self,f) -> tuple:
+        '''
+        Read the atom type and coordinates.
+
+        Parameters:
+        ----------
+        f: file
+            The file object of the lammps dump file.
+        
+        Returns:
+        -------
+        tuple:
+            type_index: list[str]
+                The list of atom types.
+            coord: np.ndarray
+                The coordinates of atoms.
+        '''
         type_index = [None]*self.natoms
         coord = np.zeros((self.natoms,3))
         for i in range(self.natoms):
@@ -110,10 +173,42 @@ class LAMMPSdump:
         return type_index, coord
     
     def __skip_blank_line(self,f,n:int) -> None:
+        '''
+        Skip the blank lines.
+
+        Parameters:
+        ----------
+        f: file
+            The file object of the lammps dump file.
+        n: int
+            The number of lines to skip.
+        
+        Returns:
+        -------
+        None
+        '''
         for i in range(n):
             f.readline()
 
-    def _read_lmp_traj(self,f) -> tuple:
+    def _read_lmp_traj(self,f) -> tuple[np.ndarray, list[str], np.ndarray]:
+        '''
+        Read one frame
+
+        Parameters:
+        ----------
+        f: file
+            The file object of the lammps dump file.
+        
+        Returns:
+        -------
+        tuple:
+            cell: np.ndarray
+                The cell matrix.
+            type_index: list[str]
+                The list of atom types.
+            coord: np.ndarray
+                The coordinates of atoms
+        '''
         self.__skip_blank_line(f,5)
         cell = self.__read_cell(f)
         self.__skip_blank_line(f,1)

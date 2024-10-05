@@ -22,6 +22,7 @@ extensions = [
     'sphinx.ext.todo',
     'sphinx.ext.coverage',
     'sphinx.ext.mathjax',
+    'sphinx.ext.viewcode',
 ]
 
 templates_path = ['_templates']
@@ -38,4 +39,4 @@ html_static_path = ['_static']
 # -- Path setup --------------------------------------------------------------
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../../ferrodispcalc'))
+sys.path.insert(0, os.path.abspath('../ferrodispcalc'))

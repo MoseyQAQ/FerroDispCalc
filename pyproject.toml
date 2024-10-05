@@ -1,0 +1,7 @@
+[project]
+name = "FerroDispCalc"
+version = "0.1"
+description = "FerroDispCalc (FDC) is a calculator for displacement, polarization, "
+readme = "README.md"
+keywords = ["ferroelectrics", "md", "workflow"]
+authors = [{name = "Denan LI", email = "lidenan@westlake.edu.cn"}]
