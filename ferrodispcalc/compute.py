@@ -22,17 +22,19 @@ from pymatgen.core import Structure, Lattice
 from ferrodispcalc.io import LAMMPSdump
 import numpy as np
 import os
-from fdc import get_averaged_structure # c++ backend
+from fdc import get_averaged_structure, get_displacement, get_polarization
 
 # ------------------- Main class ------------------- #
 class Compute:
     def __init__(self, input: str | list[Structure] | list[Atoms], 
                  format: str=None,
-                 type_map: list[str]=None) -> None:
+                 type_map: list[str]=None,
+                 prefix: str=None) -> None:
         
         self.input = input
         self.format = format
         self.type_map = type_map
+        self.prefix = prefix
         
         self.backend = self.__set_backend()
         self.input_type = self.__checkinput()
@@ -54,21 +56,29 @@ class Compute:
         self.stru = stru
         return stru
 
-    def get_polarization(self, select: slice, nl_ba: np.ndarray, nl_bo: np.ndarray, born_effective_charge: dict):
+    def get_polarization(self, select: slice, nl_ba: np.ndarray, nl_bx: np.ndarray, born_effective_charge: dict) -> np.ndarray:
         select = convert_slice_to_list(self.input, select)
         if self.backend == 'py':
             pass
         elif self.backend == 'cpp':
-            pass
+            polar = calculate_polarization_cpp(self.input, select, nl_ba, nl_bx, born_effective_charge, self.type_map)
+        self.polar = polar
+        return polar
     
-    def get_displacement(self, select: slice, nl: np.ndarray):
-        pass 
+    def get_displacement(self, nl: np.ndarray | str, select: slice=None) -> np.ndarray:
+        select = convert_slice_to_list(self.input, select)
+        if self.backend == 'py':
+            pass
+        elif self.backend == 'cpp':
+            disp = calculate_displacement_cpp(self.input, select, nl)
+        self.disp = disp
+        return disp
     
     def get_local_lattice(self, select: slice, nl_ba: np.ndarray, rotate:dict):
-        pass 
+        raise NotImplementedError('This method is not implemented yet')
     
-    def get_octahedron_rotation(self, select: slice, nl_bo: np.ndarray, rotate:dict):
-        pass 
+    def get_octahedron_rotation(self, select: slice, nl_bx: np.ndarray, rotate:dict):
+        raise NotImplementedError('This method is not implemented yet')
 
     def __set_backend(self) -> str:
         '''
@@ -133,6 +143,36 @@ def calculate_averaged_structure_cpp(input: str, type_map: list[str], select: li
     types = [type_map[t-1] for t in types]
     stru = Structure(Lattice(cell), types, coord, coords_are_cartesian=True)
     return stru
+
+def calculate_displacement_cpp(input: str, select: list[int], nl: np.ndarray | str) -> np.ndarray:
+    if isinstance(nl, str):
+        nl = np.loadtxt(nl)
+    elif isinstance(nl, np.ndarray):
+        pass
+    nl -= 1 # convert to 0-based index, for c++ backend
+    disp = get_displacement(input, nl, select)
+    disp = np.array(disp)
+    return disp
+
+def calculate_polarization_cpp(input: str, select: list[int], 
+                               nl_ba: np.ndarray | str, nl_bx: np.ndarray | str, 
+                               born_effective_charge: dict,
+                               type_map: list[str]) -> np.ndarray:
+    if isinstance(nl_ba, str):
+        nl_ba = np.loadtxt(nl_ba)
+    if isinstance(nl_bx, str):
+        nl_bx = np.loadtxt(nl_bx)
+    
+    nl_ba -= 1
+    nl_bx -= 1
+    atomic_bec = []
+    lmp = LAMMPSdump(input, type_map)
+    stru = lmp.get_first_frame()
+    for site in stru:
+        atomic_bec.append(born_effective_charge[site.species_string])
+    polar = get_polarization(input, nl_ba, nl_bx, atomic_bec, select)
+    polar = np.array(polar)
+    return polar
 
 # ------------------- Other useful func ------------------- #
 def convert_slice_to_list(input: str, select: slice) -> list[int]:
