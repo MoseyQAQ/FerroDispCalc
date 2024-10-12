@@ -21,8 +21,9 @@ from ase import Atoms
 from pymatgen.core import Structure, Lattice
 from ferrodispcalc.io import LAMMPSdump
 import numpy as np
+from pymatgen.io.ase import AseAtomsAdaptor
 import os
-from fdc import get_averaged_structure, get_displacement, get_polarization
+from fdc import get_averaged_structure, get_displacement, get_polarization # noqa
 
 # ------------------- Main class ------------------- #
 class Compute:
@@ -68,7 +69,9 @@ class Compute:
     def get_displacement(self, nl: np.ndarray | str, select: slice=None) -> np.ndarray:
         select = convert_slice_to_list(self.input, select)
         if self.backend == 'py':
-            pass
+            if self.input_type == 'pymatgen':
+                self.input = [AseAtomsAdaptor.get_atoms(stru) for stru in self.input]
+            disp = calculate_displacement_py(self.input, nl)
         elif self.backend == 'cpp':
             disp = calculate_displacement_cpp(self.input, select, nl)
         self.disp = disp
@@ -128,8 +131,24 @@ def calculate_avgeraged_structure_py(input: list[Structure] | list[Atoms]) -> St
 def calculate_polarization_py(input: list[Structure] | list[Atoms]) -> np.ndarray:
     NotImplementedError('This method is not implemented yet')
 
-def calculate_displacement_py(input: list[Structure] | list[Atoms]) -> np.ndarray:
-    NotImplementedError('This method is not implemented yet')
+def calculate_displacement_py(input: list[Atoms], nl: np.ndarray) -> np.ndarray:
+    coords = [atoms.get_positions() for atoms in input]
+    cells = [atoms.get_cell().array for atoms in input]
+    coords = np.array(coords)
+    nl -= 1
+    nframes = len(input)
+    nuc = len(nl)
+    disp = np.zeros((nframes, nuc, 3))
+
+    for i in range(nframes):
+        for j in range(nuc):
+            local_disp = coords[i, nl[j, 1:]] - coords[i, nl[j, 0]]
+            local_disp_frac = np.dot(local_disp, np.linalg.inv(cells[i]))
+            local_disp_frac[local_disp_frac > 0.5] -= 1
+            local_disp_frac[local_disp_frac < -0.5] += 1
+            local_disp = np.dot(local_disp_frac, cells[i])
+            disp[i, j] = local_disp
+    return disp
 
 def calculate_local_lattice_py(input: list[Structure] | list[Atoms]) -> np.ndarray:
     NotImplementedError('This method is not implemented yet')
