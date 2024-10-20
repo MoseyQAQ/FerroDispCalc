@@ -1,7 +1,29 @@
+[build-system]
+requires = [
+    "setuptools>=42",
+    "wheel",
+    "scikit-build",
+    "cmake>=3.14"
+]
+build-backend = "setuptools.build_meta"
+
 [project]
-name = "FerroDispCalc"
-version = "0.1"
+name = "ferrodispcalc"
+version = "0.1.0"
 description = "FerroDispCalc (FDC) is a calculator for displacement, polarization, "
 readme = "README.md"
+license = {file = "LICENSE"}
 keywords = ["ferroelectrics", "md", "workflow"]
-authors = [{name = "Denan LI", email = "lidenan@westlake.edu.cn"}]
+authors = [
+    {name = "Denan LI", email = "lidenan@westlake.edu.cn"}
+]
+dependencies = [
+    "ase",
+    "pymatgen",
+    "matplotlib",
+    "numpy",
+]
+
+[project.urls]
+homepage = "https://github.com/MoseyQAQ/FerroDispCalc"
+repository = "https://github.com/MoseyQAQ/FerroDispCalc"

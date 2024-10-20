@@ -203,7 +203,7 @@ class NeighborList:
         self.nl = new_nl
         return self.nl
     
-    def write(self, output: str) -> Structure:
+    def write(self, output: str):
         """
         Writes the neighbor list to a file.
 

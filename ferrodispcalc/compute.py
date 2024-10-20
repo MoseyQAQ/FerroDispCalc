@@ -23,7 +23,15 @@ from ferrodispcalc.io import LAMMPSdump
 import numpy as np
 from pymatgen.io.ase import AseAtomsAdaptor
 import os
-from fdc import get_averaged_structure, get_displacement, get_polarization # noqa
+try:
+    from fdc import get_averaged_structure, get_displacement, get_polarization
+except ImportError:
+    def get_averaged_structure(*args):
+        raise NotImplementedError('The c++ backend is not available')
+    def get_displacement(*args):
+        raise NotImplementedError('The c++ backend is not available')
+    def get_polarization(*args):
+        raise NotImplementedError('The c++ backend is not available')
 
 # ------------------- Main class ------------------- #
 class Compute:
