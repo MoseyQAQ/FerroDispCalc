@@ -4,7 +4,7 @@ from pymatgen.core import Structure
 from pymatgen.io.ase import AseAtomsAdaptor
 from ase.io import read
 from ase import Atoms
-from ferrodispcalc.io import LAMMPSdump
+from ferrodispcalc.io.lammps import LAMMPSdump
 
 class NeighborList:
     '''NeighborList class is used to build the neighbor list for a given atomic structure.
@@ -37,8 +37,8 @@ class NeighborList:
         Filter the neighbor list based on the distance along the specified axis.
     write(output)
         Writes the constructed neighbor list to a file in a specified format.
-
     '''
+
     def __init__(self, input: str | Structure | Atoms, 
                  format: str=None, 
                  type_map: list[str]=None):
@@ -242,4 +242,8 @@ class NeighborList:
                     except Exception as e:
                         print(f'Pymatgen Error: {e}')
                         raise ValueError('The input file format is not supported.')
+        elif isinstance(self.input, Structure):
+            stru = self.input
+        elif isinstance(self.input, Atoms):
+            stru = AseAtomsAdaptor.get_structure(self.input)
         return stru

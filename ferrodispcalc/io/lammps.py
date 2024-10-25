@@ -214,3 +214,9 @@ class LAMMPSdump:
         self.__skip_blank_line(f,1)
         type_index, coord = self.__read_atoms(f)
         return cell, type_index, coord
+    
+
+# ------------------- LAMMPS data ------------------- #
+class LAMMPSdata:
+    def __init__():
+        raise NotImplementedError('This class is not implemented yet')

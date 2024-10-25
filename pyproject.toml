@@ -24,6 +24,9 @@ dependencies = [
     "numpy",
 ]
 
+[tool.setuptools]
+packages = ["ferrodispcalc"]
+
 [project.urls]
 homepage = "https://github.com/MoseyQAQ/FerroDispCalc"
 repository = "https://github.com/MoseyQAQ/FerroDispCalc"
