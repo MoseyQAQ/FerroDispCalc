@@ -6,13 +6,30 @@ import numpy as np
 from ferrodispcalc.io.lammps import LAMMPSdump
 
 class Compute:
+    '''Compute class is used to calculate the polarization, displacement, local lattice, octahedral rotation, etc.
+
+    Methods:
+    --------
+    get_averaged_structure(select: slice=None) -> Atoms
+        Get the averaged structure of the trajectory.
+
+    get_displacement(nl: np.ndarray, select: slice=None) -> np.ndarray
+        Get the Polarization displacement of the trajectory.
+    
+    get_polarization(nl: np.ndarray, select: slice=None) -> np.ndarray
+        Get the Polarization of the trajectory.
+    
+    get_local_lattice()
+        Get the local lattice of the trajectory.
+    
+    '''
     def __init__(self, input: str | list[Atoms], 
                  type_map: list[str]=None,
                  prefix: str=None) -> None:
         
-        self.traj, self.backend = self.__checkinput(input, type_map)
         self.type_map = type_map
         self.prefix = prefix
+        self.traj, self.backend = self.__checkinput(input)
 
     def get_averaged_structure(self, select: slice=None) -> Atoms:
         '''
@@ -29,7 +46,7 @@ class Compute:
             The averaged structure, in ASE Atoms object.
         '''
         select = convert_slice_to_list(self.traj, select)
-        self.averaged_structure = self.backend.get_averaged_structure(self.traj, select)
+        self.averaged_structure = self.backend.get_averaged_structure(select)
         return self.averaged_structure
     
     def get_displacement(self, nl: np.ndarray, select: slice=None) -> np.ndarray:
@@ -44,11 +61,27 @@ class Compute:
             The slice object. Default is None, which will select the last half of the trajectory.
         '''
         select = convert_slice_to_list(self.traj, select)
-        self.displacement = self.backend.get_displacement(self.traj, select, nl)
+        self.displacement = self.backend.get_displacement(select, nl)
         return self.displacement
     
-    def get_polarization(self, nl: np.ndarray, select: slice=None) -> np.ndarray:
-        raise NotImplementedError('get_polarization() is not implemented yet.')
+    def get_polarization(self, select: np.ndarray, nl_ba: np.ndarray, nl_bx: np.ndarray, born_effective_charge: dict[str:list[float]]) -> np.ndarray:
+        '''
+        Get the Polarization of the trajectory. Only support ABO3 perovskite structure.
+
+        Parameters:
+        ----------
+        select: np.ndarray
+            The index of selected frames.
+        nl_ba: np.ndarray
+            The neighbor list for B-A pair. It is 1-based index. The first column is the center B atom index. The rest columns are the neighbor A atom indices.
+        nl_bx: np.ndarray
+            Similar to nl_ba, but for B-X pair.
+        born_effective_charge: dict[str:list[float]]
+            The Born effective charge for each atom type. The key is the atom symbol, and the value is the Born effective charge.
+        '''
+        select = convert_slice_to_list(self.traj, select)
+        self.polarization = self.backend.get_polarization(select, nl_ba, nl_bx, born_effective_charge)
+        return self.polarization
     
     def get_local_lattice():
         raise NotImplementedError('get_local_lattice() is not implemented yet.')
@@ -56,15 +89,15 @@ class Compute:
     def get_rotation():
         raise NotImplementedError('get_rotation() is not implemented yet.')
     
-    def __checkinput(self, input, type_map) -> tuple[list[Atoms] | str, PyCompute | CppCompute]:
+    def __checkinput(self, input) -> tuple[list[Atoms] | str, PyCompute | CppCompute]:
         if isinstance(input, list) and all(isinstance(i, (Atoms)) for i in input):
-            return input, PyCompute()
+            return input, PyCompute(input=input, type_map=self.type_map, prefix=self.prefix)
         elif isinstance(input, str):
             if not os.path.exists(input):
                 raise FileNotFoundError(f'{input} does not exist.')
-            if type_map is None:
+            if self.type_map is None:
                 raise ValueError('type_map is required for `lmp-dump` file')
-            return input, CppCompute()
+            return input, CppCompute(input=input, type_map=self.type_map, prefix=self.prefix)
         else:
             raise ValueError(f'Invalid input type: {type(input)}, only `str`, `list[Atoms]` are supported.')
 
