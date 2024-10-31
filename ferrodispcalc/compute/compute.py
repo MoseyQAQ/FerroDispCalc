@@ -61,7 +61,7 @@ class Compute:
             The slice object. Default is None, which will select the last half of the trajectory.
         '''
         select = convert_slice_to_list(self.traj, select)
-        self.displacement = self.backend.get_displacement(select, nl)
+        self.displacement: np.ndarray = self.backend.get_displacement(select, nl)
         return self.displacement
     
     def get_polarization(self, select: np.ndarray, nl_ba: np.ndarray, nl_bx: np.ndarray, born_effective_charge: dict[str:list[float]]) -> np.ndarray:

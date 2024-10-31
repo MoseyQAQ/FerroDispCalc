@@ -1,7 +1,9 @@
 from ferrodispcalc.compute.backend import ComputeBackend
+from ase import Atoms
+import numpy as np
 
 class CppCompute(ComputeBackend):
-    def get_averaged_structure(self, input, type_map, select):
+    def get_averaged_structure(self, select: list[int]) -> Atoms:
         pass
 
     def get_polarization(self, input, type_map, select, nl_ba, nl_bx, born_effective_charge):

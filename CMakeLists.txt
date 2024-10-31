@@ -1,23 +1,16 @@
-cmake_minimum_required(VERSION 3.14)
-project(
-    ferrodispcalc
-    VERSION 0.1
-    LANGUAGES CXX)
+cmake_minimum_required(VERSION 3.17)
 
-# Specify the C++ standard
-set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
+project(
+  ${SKBUILD_PROJECT_NAME}
+  VERSION ${SKBUILD_PROJECT_VERSION}
+  LANGUAGES CXX)
 
 # Find Python and pybind11
-set(PYBIND11_FINDPYTHON ON)
+find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
 find_package(pybind11 CONFIG REQUIRED)
 
 # Find Eigen
-find_package(Eigen3 3.3 REQUIRED NO_MODULE)
-
-# Include directories for Eigen and project src
-include_directories(${EIGEN3_INCLUDE_DIR})
-include_directories(${PROJECT_SOURCE_DIR}/src)
+find_package(Eigen3 REQUIRED NO_MODULE)
 
 # Define the sources and headers
 set(SOURCES
@@ -36,10 +29,8 @@ set(HEADERS
 )
 
 # Add module
-pybind11_add_module(ferrodispcalc MODULE ${SOURCES} ${HEADERS})
-
-# Link libraries if necessary (Eigen is header-only, usually no need to link)
-# target_link_libraries(ferrodispcalc PRIVATE Eigen3::Eigen)
+python_add_library(_core MODULE ${SOURCES} WITH_SOABI)
+target_link_libraries(_core PRIVATE pybind11::headers Eigen3::Eigen)
 
 # Install the module
-install(TARGETS ferrodispcalc LIBRARY DESTINATION ferrodispcalc)
+install(TARGETS _core DESTINATION ${SKBUILD_PROJECT_NAME})
