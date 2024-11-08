@@ -1,6 +1,5 @@
-from setuptools import setup, find_namespace_packages, find_packages
+from setuptools import setup, find_packages
 from pybind11.setup_helpers import Pybind11Extension, build_ext
-from glob import glob
 import os
 import sys
 
@@ -10,7 +9,6 @@ file_list = [
     'src/ferrodispcalc/get_displacement.cpp',
     'src/ferrodispcalc/get_polarization.cpp',
     'src/ferrodispcalc/binding.cpp',
-
 ]
 
 def get_include_path():
@@ -33,6 +31,8 @@ fdc_ext_models = [
 ]
 
 setup(
+    packages=find_packages(where="."),
+    package_dir={"": "ferrodispcalc"},
     ext_modules=fdc_ext_models,
     cmdclass={'build_ext': build_ext},
 )
