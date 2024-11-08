@@ -7,8 +7,8 @@ class CppCompute(ComputeBackend):
     def get_averaged_structure(self, select: list[int]) -> Atoms:
         data = get_averaged_structure(self.traj, self.type_map, select)
 
-        cell = np.ndarray(data[0])
-        coords = np.ndarray(data[1])
+        cell = np.array(data[0])
+        coords = np.array(data[1])
         symbols = data[2]
 
         return Atoms(
