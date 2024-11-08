@@ -6,7 +6,7 @@
 #include "get_polarization.hpp"
 namespace py = pybind11;
 
-PYBIND11_MODULE(fdc, m) {
+PYBIND11_MODULE(core, m) {
     m.doc() = "Averaging the structure of a trajectory";
 
     m.def("get_averaged_structure", &get_averaged_structure, "A function to average the structure of a trajectory");

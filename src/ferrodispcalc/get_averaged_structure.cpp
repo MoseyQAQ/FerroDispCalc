@@ -41,7 +41,7 @@ Eigen::MatrixXd get_avg_coords(std::vector<Frame> frames, int natoms) {
     return avg_coords;
 }
 
-std::tuple<Eigen::Matrix3d, Eigen::MatrixXd, std::vector<int>> get_averaged_structure(std::string input_file,
+std::tuple<Eigen::Matrix3d, Eigen::MatrixXd, std::vector<std::string>> get_averaged_structure(std::string input_file,
                                                                                        std::vector<std::string> type_map,
                                                                                        std::vector<int> frames_to_read) {
     // read input file
@@ -49,10 +49,16 @@ std::tuple<Eigen::Matrix3d, Eigen::MatrixXd, std::vector<int>> get_averaged_stru
     std::vector<int> atom_type = read_atom_types(input_file, natoms);
     std::vector<std::streampos> frame_pos = get_frame_positions(input_file);
 
+    // map atom_type int to type_map
+    std::vector<std::string> symbols;
+    for (int i = 0; i < atom_type.size(); ++i) {
+        symbols.push_back(type_map[atom_type[i]-1]);
+    }
+
     // read selected frames
     Traj traj = read_selected_frames(input_file, natoms, frame_pos, frames_to_read);
     Eigen::Matrix3d avg_cell = get_avg_cell(traj.frames);
     Eigen::MatrixXd avg_coords = get_avg_coords(traj.frames, natoms);
 
-    return std::make_tuple(avg_cell, avg_coords, atom_type);
+    return std::make_tuple(avg_cell, avg_coords, symbols);
 }
