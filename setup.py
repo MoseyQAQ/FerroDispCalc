@@ -32,7 +32,6 @@ fdc_ext_models = [
 
 setup(
     packages=find_packages(where="."),
-    package_dir={"": "ferrodispcalc"},
     ext_modules=fdc_ext_models,
     cmdclass={'build_ext': build_ext},
 )
