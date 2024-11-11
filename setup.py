@@ -1,5 +1,6 @@
 from setuptools import setup, find_packages
 from pybind11.setup_helpers import Pybind11Extension, build_ext
+import platform
 import os
 import sys
 
@@ -17,8 +18,13 @@ def get_include_path():
     include_path = os.path.join(env_base, 'include', 'eigen3')
     if os.path.exists(include_path):
         return include_path
-    else:
-        return None
+    
+    if platform.system().lower() == 'windows':
+        windows_include_path = os.path.join(os.getcwd(), 'Library', 'include', 'eigen3')
+        if os.path.exists(windows_include_path):
+            return windows_include_path
+    
+    return None
     
 eigen_include_path = [get_include_path()] if get_include_path() is not None else []
 
