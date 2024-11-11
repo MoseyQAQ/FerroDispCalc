@@ -13,6 +13,7 @@ file_list = [
 ]
 
 def get_include_path():
+    print(platform.system().lower())
     python_executable_path = sys.executable
     env_base = os.path.dirname(os.path.dirname(python_executable_path))
     include_path = os.path.join(env_base, 'include', 'eigen3')
@@ -20,10 +21,11 @@ def get_include_path():
         return include_path
     
     if platform.system().lower() == 'windows':
-        windows_include_path = os.path.join(os.getcwd(), 'Library', 'include', 'eigen3')
+        python_base_dir = os.path.dirname(python_executable_path)
+        windows_include_path = os.path.join(python_base_dir, 'Library', 'include', 'eigen3')
         if os.path.exists(windows_include_path):
             return windows_include_path
-    
+        
     return None
     
 eigen_include_path = [get_include_path()] if get_include_path() is not None else []
