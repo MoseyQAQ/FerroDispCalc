@@ -165,3 +165,11 @@ test-traj/
 # Group code
 Main.py 
 parameter*.py
+test/STOPZO_superlattice/* 
+.vscode/*
+
+# test code
+ferrodispcalc/1.vasp
+ferrodispcalc/nl.dat
+ferrodispcalc/test.py
+ferrodispcalc/Sc8_0.vasp
