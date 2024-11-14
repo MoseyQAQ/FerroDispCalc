@@ -98,7 +98,8 @@ class VectorPoltter:
             data[tag[i, 0], tag[i, 1], tag[i, 2]] = raw_data[i]
 
         return data
-
+    
+    @staticmethod
     def __cal_angle(dx, dy) -> np.ndarray:
         """
         calculate the angle of the vector
