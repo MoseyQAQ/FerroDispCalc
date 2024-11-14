@@ -1,1 +1,1 @@
-from ferrodispcalc.plotter.vector_poltter import VectorPolter
+from ferrodispcalc.plotter.vector_poltter import VectorPoltter
