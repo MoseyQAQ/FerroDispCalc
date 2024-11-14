@@ -15,8 +15,10 @@ class VectorPoltter:
         
         self.stru = stru.copy() if isinstance(stru, Atoms) else read(stru) # use deepcopy to avoid changing the original structure
         self.tag, self.size = self.__get_layers(self.stru, element, tolerance, axis)
+        print(f"Layer size: {self.size}")
         self.data = self.__load_data(vector, self.tag, self.size)
-
+        print("Loaded data successfully")
+        
     @staticmethod
     def __get_layers(stru: Atoms, 
                      element: list[str], 
