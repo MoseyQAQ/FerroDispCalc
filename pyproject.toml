@@ -17,6 +17,7 @@ dependencies = [
     "ase",
     "pymatgen",
     "matplotlib",
+    "seaborn",
     "numpy",
 ]
 classifiers = [

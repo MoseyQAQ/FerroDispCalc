@@ -3,13 +3,24 @@ import matplotlib.pyplot as plt
 from ase.geometry import get_layers
 from ase.io import read
 from ase import Atoms
+import seaborn as sns
 import os
 
 class ScalarPlotter:
-    def __init__(self) -> None:
-        pass 
+    def __init__(self,
+                 stru: str | Atoms,
+                 scalar: str | np.ndarray,
+                 element: list[str]=['Ti'],
+                 tolerance: float=1.0,
+                 axis: tuple[tuple]=((1, 0, 0), (0, 1, 0), (0, 0, 1))) -> None:
+        
+        self.stru = stru.copy() if isinstance(stru, Atoms) else read(stru) # use deepcopy to avoid changing the original structure
+        self.tag, self.size = self.__get_layers(self.stru, element, tolerance, axis)
+        print(f"Layer size: {self.size}")
+        self.data = self.__load_data(scalar, self.tag, self.size)
+        print("Loaded data successfully")
 
-     @staticmethod
+    @staticmethod
     def __get_layers(stru: Atoms, 
                      element: list[str], 
                      tolerance: float,
@@ -91,5 +102,46 @@ class ScalarPlotter:
 
         return data
 
-    def plot(self) -> None:
-        pass
+    def plot(self, dir: str, cmap: str="crest") -> None:
+        if not os.path.exists(dir):
+            os.mkdir(dir)
+        
+        # plot xy plane
+        for z_index in range(self.size[2]):
+            print(f"Plotting XY plane, {z_index}th layer")
+            fig, ax = plt.subplots(figsize=(1*self.size[0], 1*self.size[1]))
+            data = self.data[:, :, z_index]
+            sns.heatmap(data, cmap=cmap, annot=True, fmt=".2f", ax=ax, cbar=True)
+            plt.title(f"XY plane, {z_index}th layer")
+            plt.xlabel("[001]")
+            plt.ylabel("[010]")
+            plt.tight_layout()
+            plt.savefig(f"{dir}/XY_{z_index}.png", bbox_inches='tight', dpi=300)
+            plt.close()
+        
+        # plot yz plane
+        for x_index in range(self.size[0]):
+            print(f"Plotting YZ plane, {x_index}th layer")
+            fig, ax = plt.subplots(figsize=(1*self.size[1], 1*self.size[2]))
+            data = self.data[x_index, :, :]
+            sns.heatmap(data, cmap=cmap, annot=True, fmt=".2f", ax=ax, cbar=True)
+            plt.title(f"YZ plane, {x_index}th layer")
+            plt.xlabel("[010]")
+            plt.ylabel("[100]")
+            plt.tight_layout()
+            plt.savefig(f"{dir}/YZ_{x_index}.png", bbox_inches='tight', dpi=300)
+            plt.close()
+
+        # plot xz plane
+        for y_index in range(self.size[1]):
+            print(f"Plotting XZ plane, {y_index}th layer")
+            fig, ax = plt.subplots(figsize=(1*self.size[0], 1*self.size[2]))
+            data = self.data[:, y_index, :]
+            sns.heatmap(data, cmap=cmap, annot=True, fmt=".2f", ax=ax, cbar=True)
+            plt.title(f"XZ plane, {y_index}th layer")
+            plt.xlabel("[001]")
+            plt.ylabel("[100]")
+            plt.tight_layout()
+            plt.savefig(f"{dir}/XZ_{y_index}.png", bbox_inches='tight', dpi=300)
+            plt.close()
+
