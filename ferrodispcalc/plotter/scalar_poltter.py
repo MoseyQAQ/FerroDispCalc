@@ -92,8 +92,8 @@ class ScalarPlotter:
             raw_data = np.loadtxt(vector)
          
         # 2. check the shape of the data, should be 2D
-        if raw_data.ndim != 2:
-            raise ValueError("The shape of the vector should be 2D, but got {}".format(raw_data.shape))
+        if raw_data.ndim != 1:
+            raise ValueError("The shape of the vector should be 1D, but got {}".format(raw_data.shape))
         
         # 3. assign the data to the 3D array
         data = np.full((size[0], size[1], size[2]), np.nan)
