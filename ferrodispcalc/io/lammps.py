@@ -1,6 +1,6 @@
 import numpy as np
 from pymatgen.core import Structure, Lattice
-
+from ase import Atoms
 class LAMMPSdump:
     '''LAMMPSdump calss is used to read the lammps dump file.
         
@@ -42,7 +42,7 @@ class LAMMPSdump:
         self.file_name = file_name
         self.type_map = type_map
 
-    def get_first_frame(self) -> Structure:
+    def get_first_frame(self) -> Atoms:
         '''
         Get the first frame in the lammps dump file. Return the structure in pymatgen format.
 
@@ -59,7 +59,7 @@ class LAMMPSdump:
         self.natoms = self.get_natoms()
         cell, type_index, coord = self._read_lmp_traj(f)
         f.close()
-        stru = Structure(Lattice(cell), type_index, coord, coords_are_cartesian=True)
+        stru = Atoms(symbols=type_index, positions=coord, cell=cell, pbc=True)
         return stru
     
     def get_nframes(self) -> int:
