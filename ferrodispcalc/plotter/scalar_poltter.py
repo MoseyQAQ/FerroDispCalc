@@ -96,7 +96,7 @@ class ScalarPlotter:
             raise ValueError("The shape of the vector should be 2D, but got {}".format(raw_data.shape))
         
         # 3. assign the data to the 3D array
-        data = np.full((size[0], size[1], size[2], 3), np.nan)
+        data = np.full((size[0], size[1], size[2]), np.nan)
         for i in range(len(raw_data)):
             data[tag[i, 0], tag[i, 1], tag[i, 2]] = raw_data[i]
 
