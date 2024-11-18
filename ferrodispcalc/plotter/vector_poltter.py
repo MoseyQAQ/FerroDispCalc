@@ -124,9 +124,15 @@ class VectorPoltter:
         angle[index] = 360.0 - angle[index]
         return angle
     
-    def plot(self, dir: str):
+    def plot(self, dir: str, relative: bool=True) -> None:
         if not os.path.exists(dir):
             os.makedirs(dir)
+
+        quiver_kwargs = {}
+        if relative == False:
+            quiver_kwargs['scale'] = 1
+            quiver_kwargs['scale_units'] = 'xy'
+
 
         # plot xy 
         for z_index in range(self.size[2]):
@@ -136,7 +142,7 @@ class VectorPoltter:
             dx = self.data[:, :, z_index, 0].T
             dy = self.data[:, :, z_index, 1].T
             angle = self.__cal_angle(dx, dy)
-            ax.quiver(dx, dy, scale=1, scale_units='xy')
+            ax.quiver(dx, dy, **quiver_kwargs)
             sc = ax.imshow(angle, cmap='hsv', vmax=360, vmin=0, aspect=1.0, origin='lower')
             plt.title(f"XY plane, {z_index}th layer")
             plt.xlabel("[100]")
@@ -150,7 +156,7 @@ class VectorPoltter:
             dx = self.data[:, y_index, :, 0].T
             dz = self.data[:, y_index, :, 2].T
             angle = self.__cal_angle(dx, dz)
-            ax.quiver(dx, dz, scale=1, scale_units='xy')
+            ax.quiver(dx, dz, **quiver_kwargs)
             sc = ax.imshow(angle, cmap='hsv', vmax=360, vmin=0, aspect=1.0, origin='lower')
             plt.title(f"XZ plane, {y_index}th layer")
             plt.xlabel("[100]")
@@ -165,7 +171,7 @@ class VectorPoltter:
             dy = self.data[x_index, :, :, 1].T
             dz = self.data[x_index, :, :, 2].T
             angle = self.__cal_angle(dy, dz)
-            ax.quiver(dy, dz, scale=1, scale_units='xy')
+            ax.quiver(dy, dz, **quiver_kwargs)
             sc = ax.imshow(angle, cmap='hsv', vmax=360, vmin=0, aspect=1.0, origin='lower')
             plt.title(f"YZ plane, {x_index}th layer")
             plt.xlabel("[010]")
