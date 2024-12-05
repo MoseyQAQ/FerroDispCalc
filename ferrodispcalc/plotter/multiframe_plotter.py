@@ -3,7 +3,8 @@ import matplotlib.pyplot as plt
 from ase.geometry import get_layers
 from ase.io import read 
 from ase import Atoms
-import matplotlib.animation as animation
+from matplotlib.animation import FuncAnimation,FFMpegWriter
+from pathlib import Path
 
 class MultiFramePlotter:
     def __init__(self, 
@@ -127,48 +128,51 @@ class MultiFramePlotter:
         angle[index] = 360.0 - angle[index]
         return angle
 
-    def plot(self, save_path: str,  direction: int, layer_index: int, relative: bool=True, fps: int=15) -> None:
+    def plot(self, save_path: str,  direction: int, layer_index: int, relative: bool=True, fps: int=15, select: slice=None) -> None:
         quiver_kwargs = {}
         if relative == False:
             quiver_kwargs['scale'] = 1
             quiver_kwargs['scale_units'] = 'xy'
         
+        save_path = Path(save_path)
+        if not save_path.exists():
+            save_path.mkdir(parents=True)
+        outfile = save_path / f"layer_{layer_index}_direction_{direction}.mp4"
+        
         fig, ax = plt.subplots()
 
-        # Set static labels and title to avoid clearing and re-setting each frame
-        if direction == 0:
-            ax.set_xlabel("[010]")
-            ax.set_ylabel("[001]")
-        elif direction == 1:
-            ax.set_xlabel("[100]")
-            ax.set_ylabel("[001]")
-        elif direction == 2:
-            ax.set_xlabel("[100]")
-            ax.set_ylabel("[010]")
-
         def update(frame):
-            ax.clear()  # Clear only the quiver plot for faster updates
-            if direction == 0:  # Plot along x-axis
+            print(f"Processing frame {frame}")
+            plt.cla()
+            if direction == 0: # yz plane
                 dy = self.data[frame, layer_index, :, :, 1].T
                 dz = self.data[frame, layer_index, :, :, 2].T
                 angle = self.__cal_angle(dy, dz)
                 ax.quiver(dy, dz, **quiver_kwargs)
-                ax.imshow(angle, cmap='hsv', vmax=360, vmin=0, aspect=1.0, origin='lower')
+                sc = ax.imshow(angle, cmap='hsv', vmax=360, vmin=0, aspect=1.0, origin='lower')
                 ax.set_title(f"YZ plane, {layer_index}th layer, frame {frame}")
-            elif direction == 1:  # Plot along y-axis
+                plt.xlabel("[010]")
+                plt.ylabel("[001]")
+            elif direction == 1: # xz plane
                 dx = self.data[frame, :, layer_index, :, 0].T
                 dz = self.data[frame, :, layer_index, :, 2].T
                 angle = self.__cal_angle(dx, dz)
                 ax.quiver(dx, dz, **quiver_kwargs)
-                ax.imshow(angle, cmap='hsv', vmax=360, vmin=0, aspect=1.0, origin='lower')
+                sc = ax.imshow(angle, cmap='hsv', vmax=360, vmin=0, aspect=1.0, origin='lower')
                 ax.set_title(f"XZ plane, {layer_index}th layer, frame {frame}")
-            elif direction == 2:  # Plot along z-axis
+                plt.xlabel("[100]")
+                plt.ylabel("[001]")
+            elif direction == 2: # xy plane
                 dx = self.data[frame, :, :, layer_index, 0].T
                 dy = self.data[frame, :, :, layer_index, 1].T
                 angle = self.__cal_angle(dx, dy)
                 ax.quiver(dx, dy, **quiver_kwargs)
-                ax.imshow(angle, cmap='hsv', vmax=360, vmin=0, aspect=1.0, origin='lower')
+                sc = ax.imshow(angle, cmap='hsv', vmax=360, vmin=0, aspect=1.0, origin='lower')
                 ax.set_title(f"XY plane, {layer_index}th layer, frame {frame}")
+                plt.xlabel("[100]")
+                plt.ylabel("[010]")
+        
+        ani = FuncAnimation(fig, update, frames=select, repeat=False, interval=20)
 
-        ani = animation.FuncAnimation(fig, update, frames=self.data.shape[0], repeat=False)
-        ani.save(save_path, writer='ffmpeg', fps=fps)
+        writter = FFMpegWriter(fps=fps, metadata=dict(artist='Me'), bitrate=1500)
+        ani.save(f'{outfile}', writer=writter)
