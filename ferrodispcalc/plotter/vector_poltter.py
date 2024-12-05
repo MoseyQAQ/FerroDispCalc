@@ -124,7 +124,7 @@ class VectorPoltter:
         angle[index] = 360.0 - angle[index]
         return angle
     
-    def plot(self, dir: str, relative: bool=True) -> None:
+    def plot(self, dir: str, relative: bool=True, select: dict=None) -> None:
         if not os.path.exists(dir):
             os.makedirs(dir)
 
@@ -133,9 +133,12 @@ class VectorPoltter:
             quiver_kwargs['scale'] = 1
             quiver_kwargs['scale_units'] = 'xy'
 
-
         # plot xy 
         for z_index in range(self.size[2]):
+            if select is not None and 'xy' not in select:
+                break
+            if select is not None and z_index not in select['xy']:
+                continue
             # save data to txt at z_index
             print(f"Plotting XY plane, {z_index}th layer")
             fig, ax = plt.subplots(figsize=(1*self.size[0], 1*self.size[1]))
@@ -151,6 +154,10 @@ class VectorPoltter:
             plt.close()
         # plot xz
         for y_index in range(self.size[1]):
+            if select is not None and 'xz' not in select:
+                break 
+            if select is not None and y_index not in select['xz']:
+                continue
             print(f"Plotting XZ plane, {y_index}th layer")
             fig, ax = plt.subplots(figsize=(1*self.size[0], 1*self.size[2]))
             dx = self.data[:, y_index, :, 0].T
@@ -166,6 +173,10 @@ class VectorPoltter:
 
         # plot yz 
         for x_index in range(self.size[0]):
+            if select is not None and 'yz' not in select:
+                break
+            if select is not None and x_index not in select['yz']:
+                continue
             print(f"Plotting YZ plane, {x_index}th layer")
             fig, ax = plt.subplots(figsize=(1*self.size[1], 1*self.size[2]))
             dy = self.data[x_index, :, :, 1].T
