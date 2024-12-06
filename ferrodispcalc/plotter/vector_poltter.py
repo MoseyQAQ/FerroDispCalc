@@ -125,6 +125,22 @@ class VectorPoltter:
         return angle
     
     def plot(self, dir: str, relative: bool=True, select: dict=None) -> None:
+        '''
+        Plot the vector field in the 2D plane
+
+        Parameters:
+        -----------
+        dir: str
+            The directory to save the plots
+        relative: bool
+            Whether to use the relative scale for the vector, default is True
+        select: dict
+            The selected index for each plane, default is None.
+            If None, all the planes will be plotted.
+            If not None, it should be a dictionary with the following format:
+            {'xy': [0, 1, 2], 'xz': [0, 1, 2], 'yz': [0, 1, 2]}
+            which means we only plot the 0, 1, 2 layers in the xy, xz, yz plane, respectively.
+        '''
         if not os.path.exists(dir):
             os.makedirs(dir)
 
