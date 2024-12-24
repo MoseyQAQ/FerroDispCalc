@@ -1,5 +1,4 @@
 import numpy as np
-from pymatgen.core import Structure, Lattice
 from ase import Atoms
 class LAMMPSdump:
     '''LAMMPSdump calss is used to read the lammps dump file.

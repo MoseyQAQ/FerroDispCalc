@@ -1,9 +1,9 @@
 from ferrodispcalc.compute.pybackend import PyCompute
-from ferrodispcalc.compute.cppbackend import CppCompute
 from ase import Atoms
 import os
 import numpy as np
 from ferrodispcalc.io.lammps import LAMMPSdump
+from typing import Union
 
 class Compute:
     '''Compute class is used to calculate the polarization, displacement, local lattice, octahedral rotation, etc.
@@ -23,7 +23,7 @@ class Compute:
         Get the local lattice of the trajectory.
     
     '''
-    def __init__(self, input: str | list[Atoms], 
+    def __init__(self, input: Union[str, list[Atoms]], 
                  type_map: list[str]=None,
                  prefix: str=None) -> None:
         
@@ -89,20 +89,14 @@ class Compute:
     def get_rotation():
         raise NotImplementedError('get_rotation() is not implemented yet.')
     
-    def __checkinput(self, input) -> tuple[list[Atoms] | str, PyCompute | CppCompute]:
+    def __checkinput(self, input) -> tuple[Union[list[Atoms], str], PyCompute]:
         if isinstance(input, list) and all(isinstance(i, (Atoms)) for i in input):
             return input, PyCompute(input=input, type_map=self.type_map, prefix=self.prefix)
-        elif isinstance(input, str):
-            if not os.path.exists(input):
-                raise FileNotFoundError(f'{input} does not exist.')
-            if self.type_map is None:
-                raise ValueError('type_map is required for `lmp-dump` file')
-            return input, CppCompute(input=input, type_map=self.type_map, prefix=self.prefix)
         else:
-            raise ValueError(f'Invalid input type: {type(input)}, only `str`, `list[Atoms]` are supported.')
+            raise ValueError('The input should be a list of ASE Atoms object.')
 
 
-def convert_slice_to_list(input: str | list, select: slice) -> list[int]:
+def convert_slice_to_list(input: Union[str, list], select: slice) -> list[int]:
     '''
     convert slice object to list.
     If select is None, return a list of consecutive integers from nframes/2 to nframes.

@@ -5,11 +5,12 @@ from ase.io import read
 from ase import Atoms
 from matplotlib.animation import FuncAnimation,FFMpegWriter
 from pathlib import Path
+from typing import Union
 
 class MultiFramePlotter:
     def __init__(self, 
-                 stru: str | Atoms, 
-                 vector: str | np.ndarray,
+                 stru: Union[str, Atoms],
+                 vector: Union[str, np.ndarray],
                  element: list[str]=['Ti'],
                  tolerance: float=1.0,
                  axis: tuple[tuple]=((1, 0, 0), (0, 1, 0), (0, 0, 1))) -> None:
@@ -63,7 +64,7 @@ class MultiFramePlotter:
         return tag, size
     
     @staticmethod
-    def __load_data(vector: str | np.ndarray,
+    def __load_data(vector: Union[str, np.ndarray],
                     tag: np.ndarray,
                     size: list[int]) -> np.ndarray:
         """

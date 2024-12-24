@@ -5,11 +5,12 @@ from ase.io import read
 from ase import Atoms
 import seaborn as sns
 import os
+from typing import Union
 
 class ScalarPlotter:
     def __init__(self,
-                 stru: str | Atoms,
-                 scalar: str | np.ndarray,
+                 stru: Union[str, Atoms],
+                 scalar: Union[str, np.ndarray],
                  element: list[str]=['Ti'],
                  tolerance: float=1.0,
                  axis: tuple[tuple]=((1, 0, 0), (0, 1, 0), (0, 0, 1))) -> None:
@@ -63,7 +64,7 @@ class ScalarPlotter:
         return tag, size
     
     @staticmethod
-    def __load_data(vector: str | np.ndarray,
+    def __load_data(vector: Union[str, np.ndarray],
                     tag: np.ndarray,
                     size: list[int]) -> np.ndarray:
         """
