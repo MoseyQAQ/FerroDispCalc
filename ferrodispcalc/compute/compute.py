@@ -1,8 +1,6 @@
 from ferrodispcalc.compute.pybackend import PyCompute
 from ase import Atoms
-import os
 import numpy as np
-from ferrodispcalc.io.lammps import LAMMPSdump
 from typing import Union
 from scipy.spatial.transform import Rotation
 
