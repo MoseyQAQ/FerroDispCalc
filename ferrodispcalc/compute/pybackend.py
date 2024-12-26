@@ -1,17 +1,16 @@
 from ferrodispcalc.compute.backend import ComputeBackend
 from ase import Atoms
 import numpy as np
+from scipy.spatial.transform import Rotation
 
 class PyCompute(ComputeBackend):
-    def get_averaged_structure(self, select: list[int]) -> Atoms:
+    def get_averaged_structure(self) -> Atoms:
 
         traj: list[Atoms] = self.traj
 
         # shape: (nframes, natoms, 3)
         coords = np.array([atoms.get_positions() for atoms in traj])
         cells = np.array([atoms.get_cell().array for atoms in traj])
-        coords = coords[select]
-        cells = cells[select]
         coords_frac = np.array([np.dot(coords[i], np.linalg.inv(cells[i])) for i in range(len(coords))])
         coords_frac_diff = coords_frac - coords_frac[0]
         coords_frac[coords_frac_diff > 0.5] -= 1
@@ -27,14 +26,12 @@ class PyCompute(ComputeBackend):
             pbc=True
         )
         
-    def get_polarization(self, select: np.ndarray, nl_ba: np.ndarray, nl_bx: np.ndarray, born_effective_charge: dict[str:list[float]]) -> np.ndarray:
+    def get_polarization(self, nl_ba: np.ndarray, nl_bx: np.ndarray, born_effective_charge: dict[str:list[float]], rotation_mat: Rotation) -> np.ndarray:
         traj: list[Atoms] = self.traj
         coords = np.array([atoms.get_positions() for atoms in traj])
         cells = np.array([atoms.get_cell().array for atoms in traj])
-        coords = coords[select]
-        cells = cells[select]
-        nl_ba -= 1
-        nl_bx -= 1
+        nl_ba -= 1 # convert to 0-based index
+        nl_bx -= 1 # convert to 0-based index
         nframes = coords.shape[0]
         natoms = nl_ba.shape[0] # it's number of unit cells actually
         polarization = np.full((nframes, natoms, 3), np.nan) # shape: (nframes, natoms, 3)
@@ -73,6 +70,10 @@ class PyCompute(ComputeBackend):
                 x_coords_frac[x_coords_diff_frac < -0.5] += 1
                 a_coords = np.dot(a_coords_frac, cell)
                 x_coords = np.dot(x_coords_frac, cell)
+                if rotation_mat is not None:
+                    b_coords = rotation_mat.apply(b_coords)
+                    a_coords = rotation_mat.apply(a_coords)
+                    x_coords = rotation_mat.apply(x_coords)
 
                 # 5. calculate polarization
                 polarization[i, j] = b_coords * bec[b_id] + np.sum(a_coords * bec[a_id][:, np.newaxis], axis=0) / 8 + np.sum(x_coords * bec[x_id][:, np.newaxis], axis=0) / 2
@@ -82,13 +83,11 @@ class PyCompute(ComputeBackend):
         
         return polarization
 
-    def get_displacement(self, select: list[int], nl: np.ndarray) -> np.ndarray:
+    def get_displacement(self, nl: np.ndarray) -> np.ndarray:
 
         traj: list[Atoms] = self.traj
         coords = np.array([atoms.get_positions() for atoms in traj])
         cells = np.array([atoms.get_cell().array for atoms in traj])
-        coords = coords[select]
-        cells = cells[select]
         nframes = coords.shape[0]
         natoms = nl.shape[0]
         nl -=1 # convert to 0-based index

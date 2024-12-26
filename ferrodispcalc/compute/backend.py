@@ -9,13 +9,13 @@ class ComputeBackend(ABC):
         self.prefix = prefix
     
     @abstractmethod
-    def get_averaged_structure(self, select: list[int]) -> Atoms:
+    def get_averaged_structure(self) -> Atoms:
         pass 
 
     @abstractmethod
-    def get_displacement(self, select: list[int], nl: np.ndarray) -> np.ndarray:
+    def get_displacement(self, nl: np.ndarray) -> np.ndarray:
         pass
 
     @abstractmethod
-    def get_polarization(self, select: list[int], nl: np.ndarray) -> np.ndarray:
+    def get_polarization(self, nl: np.ndarray) -> np.ndarray:
         pass
