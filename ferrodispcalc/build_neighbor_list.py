@@ -67,7 +67,12 @@ class NeighborList:
         self.format = format
         self.type_map = type_map
         self.stru = self.__initialize_stru()
-
+        self._nl = None
+    @property
+    def nl(self) -> np.ndarray:
+        '''This is a read-only property that returns the neighbor list.'''
+        return self._nl
+    
     def build(self, center_elements: list[str], neighbor_elements: list[str], 
               cutoff: float, neighbor_num: int, 
               defect: bool=False) -> np.ndarray:
@@ -155,9 +160,9 @@ class NeighborList:
         
         center_elements_index = np.array(center_elements_index)
         neighbor_elements_index = np.array(neighbor_elements_index)
-        self.nl = np.concatenate([center_elements_index[:,np.newaxis], neighbor_elements_index], axis=1)
-        self.nl +=1 # convert the index to 1-based
-        return self.nl
+        self._nl = np.concatenate([center_elements_index[:,np.newaxis], neighbor_elements_index], axis=1)
+        self._nl +=1 # convert the index to 1-based
+        return self._nl
     
     def filter(self, nl: np.ndarray=None, axis: int=2, rcut: float=1, neighbor_num: int=3) -> np.ndarray:
         '''
@@ -181,7 +186,7 @@ class NeighborList:
             The filtered neighbor list with 1-based indexing. The first column is the index of the center element and the remaining columns are the indices of its neighbors.
         '''
 
-        nl = self.nl.copy() if nl is None else nl
+        nl = self._nl.copy() if nl is None else nl
         center = nl[:,0]
         neighbors = nl[:,1:]
         center_pos = self.stru.cart_coords[center-1] # 0-based index
@@ -201,8 +206,8 @@ class NeighborList:
             mask = diff < rcut
             new_nl[idx,1:neighbor_num+1] = n[mask]
 
-        self.nl = new_nl
-        return self.nl
+        self._nl = new_nl
+        return self._nl
     
     def write(self, output: str):
         """
@@ -221,9 +226,9 @@ class NeighborList:
         if os.path.exists(output):
             raise FileExistsError(f'{output} already exists.')
         else:
-            np.savetxt(output, self.nl, fmt='%10d')
+            np.savetxt(output, self._nl, fmt='%10d')
 
-    def __initialize_stru(self):
+    def __initialize_stru(self) -> Structure:
 
         # initialize the structure object
         # if the input is a structure object, try to convert it to pymatgen structure
