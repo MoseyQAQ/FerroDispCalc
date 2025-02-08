@@ -35,5 +35,5 @@ test = ["pytest"]
 homepage = "https://github.com/MoseyQAQ/FerroDispCalc"
 repository = "https://github.com/MoseyQAQ/FerroDispCalc"
 
-[tool.setuptools]
-packages = ["find:"]
+[tool.setuptools.packages.find]
+where = ["src"]
