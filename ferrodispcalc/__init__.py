@@ -1,2 +1,2 @@
-from .build_neighbor_list import NeighborList
-from .compute.compute import Compute
+from ._build_neighbor_list import NeighborList
+from .compute._compute import Compute
