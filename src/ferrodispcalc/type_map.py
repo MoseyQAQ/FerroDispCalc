@@ -13,3 +13,11 @@ UniPero: list[str] = ['Ba','Pb','Ca','Sr','Bi',
 PSTO: list[str]=['Sr','Pb','Ti','O']
 
 GaN: list[str] = ['N', 'Sc', 'Ga']
+
+organic_ferroelectric: list[str] = [
+    "H",
+    "C",
+    "N",
+    "Cl",
+    "Cd"
+]

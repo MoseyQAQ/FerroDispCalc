@@ -1,3 +1,0 @@
-from ferrodispcalc.plotter.vector_poltter import VectorPoltter
-from ferrodispcalc.plotter.scalar_poltter import ScalarPlotter
-from ferrodispcalc.plotter.multiframe_plotter import MultiFramePlotter
