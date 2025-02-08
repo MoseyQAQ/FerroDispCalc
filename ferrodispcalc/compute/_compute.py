@@ -1,5 +1,4 @@
 from ferrodispcalc.compute.pybackend import PyCompute
-from ferrodispcalc.compute.cppbackend import CppCompute
 from ase import Atoms
 import os
 import numpy as np
@@ -89,15 +88,9 @@ class Compute:
     def get_rotation():
         raise NotImplementedError('get_rotation() is not implemented yet.')
     
-    def __checkinput(self, input) -> tuple[list[Atoms] | str, PyCompute | CppCompute]:
+    def __checkinput(self, input) -> tuple[list[Atoms] | str, PyCompute]:
         if isinstance(input, list) and all(isinstance(i, (Atoms)) for i in input):
             return input, PyCompute(input=input, type_map=self.type_map, prefix=self.prefix)
-        elif isinstance(input, str):
-            if not os.path.exists(input):
-                raise FileNotFoundError(f'{input} does not exist.')
-            if self.type_map is None:
-                raise ValueError('type_map is required for `lmp-dump` file')
-            return input, CppCompute(input=input, type_map=self.type_map, prefix=self.prefix)
         else:
             raise ValueError(f'Invalid input type: {type(input)}, only `str`, `list[Atoms]` are supported.')
 
