@@ -124,7 +124,32 @@ class VectorPoltter:
         angle[index] = 360.0 - angle[index]
         return angle
     
-    def plot(self, dir: str, relative: bool=True, select: dict=None, hot: bool=True) -> None:
+    def plot(self, dir: str, 
+             relative: bool=True, 
+             select: dict=None, 
+             hot: bool=True,
+             fig_size: str='auto') -> None:
+        """
+        Plot the vector field in the 3D space
+
+        Parameters:
+        -----------
+        dir: str
+            The directory to save the plots
+        relative: bool
+            Whether to plot the vector in the relative scale
+        select: dict
+            The selected layers to plot, should be a dictionary with keys of 'xy', 'xz', 'yz', and values of the selected layers;
+            e.g., {'xy': [0, 1], 'xz': [0, 1], 'yz': [0, 1]}
+        hot: bool
+            Whether to plot the angle in the hot colormap
+        fig_size: str
+            The figure size, should be 'auto', 'default', or a tuple of the figure size.
+            auto: 1*size
+            default: the default size from matplotlib
+            tuple: the given size
+        """
+        
         if not os.path.exists(dir):
             os.makedirs(dir)
 
@@ -141,7 +166,14 @@ class VectorPoltter:
                 continue
             # save data to txt at z_index
             print(f"Plotting XY plane, {z_index}th layer")
-            fig, ax = plt.subplots(figsize=(1*self.size[0], 1*self.size[1]))
+            if fig_size == 'auto':
+                fig, ax = plt.subplots(figsize=(1*self.size[0], 1*self.size[1]))
+            elif fig_size == 'default':
+                fig, ax = plt.subplots()
+            elif isinstance(fig_size, tuple):
+                fig, ax = plt.subplots(figsize=fig_size)
+            else:
+                raise ValueError(f"Invalid figure size: {fig_size}")
             dx = self.data[:, :, z_index, 0].T
             dy = self.data[:, :, z_index, 1].T
             angle = self.__cal_angle(dx, dy)
@@ -160,7 +192,14 @@ class VectorPoltter:
             if select is not None and y_index not in select['xz']:
                 continue
             print(f"Plotting XZ plane, {y_index}th layer")
-            fig, ax = plt.subplots(figsize=(1*self.size[0], 1*self.size[2]))
+            if fig_size == 'auto':
+                fig, ax = plt.subplots(figsize=(1*self.size[0], 1*self.size[2]))
+            elif fig_size == 'default':
+                fig, ax = plt.subplots()
+            elif isinstance(fig_size, tuple):
+                fig, ax = plt.subplots(figsize=fig_size)
+            else:
+                raise ValueError(f"Invalid figure size: {fig_size}")
             dx = self.data[:, y_index, :, 0].T
             dz = self.data[:, y_index, :, 2].T
             angle = self.__cal_angle(dx, dz)
@@ -180,7 +219,14 @@ class VectorPoltter:
             if select is not None and x_index not in select['yz']:
                 continue
             print(f"Plotting YZ plane, {x_index}th layer")
-            fig, ax = plt.subplots(figsize=(1*self.size[1], 1*self.size[2]))
+            if fig_size == 'auto':
+                fig, ax = plt.subplots(figsize=(1*self.size[1], 1*self.size[2]))
+            elif fig_size == 'default':
+                fig, ax = plt.subplots()
+            elif isinstance(fig_size, tuple):
+                fig, ax = plt.subplots(figsize=fig_size)
+            else:
+                raise ValueError(f"Invalid figure size: {fig_size}")
             dy = self.data[x_index, :, :, 1].T
             dz = self.data[x_index, :, :, 2].T
             angle = self.__cal_angle(dy, dz)
