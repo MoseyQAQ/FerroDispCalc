@@ -6,27 +6,32 @@
 FerroDispCalc documentation
 ===========================
 
-FerroDispCalc is a Python toolkit for pre- and post-processing of atomic simulations of ferroelectric materials, with special focus on analyzing ionic displacements and polarization calculations.
+FerroDispCalc (fdc) is a Python toolkit for pre- and post-processing of atomic simulations of ferroelectric materials, with special focus on analyzing ionic displacements and polarization calculations.
 
 Features
 ---------
 
 **Pre-processing**
-- Build neighbor lists through intuitive APIs supporting various crystal systems (perovskites, HfO₂, In₂Se₃, etc.)
+
+- Build neighbor lists through intuitive APIs supporting various crystal systems (ABO<sub>3</sub> perovskites, HfO₂, In₂Se₃, etc.)
 - Structure file format conversion (supports POSCAR, LAMMPS data, XYZ, etc.)
 
 **Core Computation**
+
 - *Python Interface*: Calculate ionic displacements, average structures, and perovskite polarization
 - *C++ Interface*: High-performance processing of LAMMPS trajectory files for:
+
   - Average structure calculation
   - Ionic displacement
   - Local polarization (perovskite-specific)
   - Local lattice distortion
 - *LAMMPS Plugin*: Real-time computation during MD simulations via ``compute`` commands:
+
   - On-the-fly displacement monitoring
   - Instant polarization access
 
 **Post-processing**
+
 - Automated visualization of vector fields (displacement/polarization)
 
 .. toctree::
